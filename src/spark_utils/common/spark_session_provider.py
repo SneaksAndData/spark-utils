@@ -33,26 +33,3 @@ class SparkSessionProvider:
         """
         return self._spark_session
 
-    def get_file_system(self, path) -> HadoopFsWrapper:
-        """
-          Get a Hadoop FileSystem used by current Spark Session
-        :return: HadoopFsWrapper
-        """
-        spark_jvm = self._spark_session._jvm
-        init_path = spark_jvm.java.net.URI(path)
-        if os.environ.get('PYTEST_CURRENT_TEST'):
-            return HadoopFsWrapper(
-                obj=spark_jvm.org.apache.hadoop.fs.FileSystem.get(
-                    init_path,
-                    self._spark_session._jsc.hadoopConfiguration()
-                ),
-                jvm=spark_jvm
-            )
-
-        return HadoopFsWrapper(
-            obj=spark_jvm.org.apache.hadoop.fs.azurebfs.SecureAzureBlobFileSystem.get(
-                init_path,
-                self._spark_session._jsc.hadoopConfiguration()
-            ),
-            jvm=spark_jvm
-        )

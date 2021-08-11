@@ -5,7 +5,7 @@
 import argparse
 from typing import Optional, Iterable
 
-from spark_utils.models.job_socket import JobSocket
+from src.spark_utils.models.job_socket import JobSocket
 
 
 class SparkJobArgs:
