@@ -92,4 +92,4 @@ def union_dataframes(left_df: DataFrame, right_df: DataFrame) -> DataFrame:
         left_df_col_list, right_df_col_list)
     left_list_miss_cols = case_insensitive_diff(
         right_df_col_list, left_df_col_list)
-    return order_and_union_dataframes(left_df, right_df, *left_list_miss_cols, *right_list_miss_cols)
+    return order_and_union_dataframes(left_df, right_df, list(left_list_miss_cols), list(right_list_miss_cols))
