@@ -1,0 +1,118 @@
+trigger:
+  - main
+  - task/*
+
+variables:
+  isMain: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: validateAndTagCode
+    displayName: Validate code and tag sources if on main
+    jobs:
+      - job: runTests
+        container:
+          image: esdcrproduction.azurecr.io/spark:v0.0.5
+          endpoint: esdcrproduction
+          options: --user root
+        displayName: Validate code
+        steps:
+          - task: PipAuthenticate@1
+            displayName: 'Set PIP_INDEX_URL'
+            inputs:
+              artifactFeeds: 'eccoSneaksAndData'
+          - script: |
+              set -e
+
+              pypath=$(pwd)
+              export PYTHONPATH="$pypath/src:$PYTHONPATH"
+
+              python -m virtualenv sparkutils
+              source sparkutils/bin/activate
+              pip install --upgrade pip
+
+              pip install -r ./requirements.txt
+              pip install -r ./requirements-dev.txt
+              pip install -r ./requirements-ecco.txt
+            displayName: Prepare venv
+          - script: |
+              set -e
+
+              pypath=$(pwd)
+              export PYTHONPATH="$pypath/src:$PYTHONPATH"
+
+              source sparkutils/bin/activate
+              cd ./src/spark_utils
+              find . -type f -name "*.py" | xargs pylint
+            displayName: Lint
+          - script: |
+              set -e
+
+              pypath=$(pwd)
+              export PYTHONPATH="$pypath/src:$PYTHONPATH"
+
+              source sparkutils/bin/activate
+              cd ./test
+              pytest
+            displayName: Unit test
+      - job: setReleaseVersion
+        displayName: Set Release Version
+        dependsOn: runTests
+        condition: eq(variables.isMain, true)
+        steps:
+          - checkout: self
+            persistCredentials: 'true'
+          - script: |
+              currentMajor=$MAJOR_V
+              currentMinor=$MINOR_V
+              currentVersion=$(git describe --tags --abbrev=7)
+              currentRevision=$(echo $(echo $currentVersion | rev | cut -d. -f1) | rev | cut -d- -f1)
+
+              nextRevision=$(( currentRevision + 1 ))
+              nextVersion="v$currentMajor.$currentMinor.$nextRevision"
+              git tag $nextVersion
+              git push origin $nextVersion
+            displayName: 'Update released version'
+            env:
+              MAJOR_V: $(MAJOR_V)
+              MINOR_V: $(MINOR_V)
+  - stage: buildDistribution
+    displayName: Build distribution
+    dependsOn: validateAndTagCode
+    jobs:
+      - job: buildAndPublish
+        displayName: Run setuptools and publish
+        condition: and( not(failed()), not(canceled()) )
+        steps:
+          - script: |
+              set -e
+
+              pip install virtualenv
+              export PYTHONPATH="./:$PYTHONPATH"
+              python -m virtualenv sparkutils
+
+              source sparkutils/bin/activate
+              pip install --upgrade pip
+              pip install --upgrade twine build
+
+              python -m build --sdist --wheel
+            displayName: Create source distribution and a wheel
+          - publish: $(System.DefaultWorkingDirectory)/dist
+            artifact: dist
+            displayName: Publish source as build artifact
+          - task: PipAuthenticate@1
+            displayName: Set pip index url
+            inputs:
+              artifactFeeds: 'eccoSneaksAndData'
+          - script: |
+              set -e
+
+              source sparkutils/bin/activate
+              pip_password=$(echo $(PIP_INDEX_URL) | cut -d: -f3 | cut -d@ -f1)
+
+              python3 -m twine upload --verbose --non-interactive --repository-url https://pkgs.dev.azure.com/eccoSneaksAndData/_packaging/eccoSneaksAndData/pypi/upload --username build --password $pip_password dist/*
+            condition: eq(variables.isMain, true)
+            displayName: Publish to PyPi
+
