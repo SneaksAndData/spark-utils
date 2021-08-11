@@ -1,12 +1,15 @@
 """Utility methods for Spark SQL"""
+from typing import List
 
 from delta import DeltaTable
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, DataFrame
+from pyspark.sql.types import StructType, StructField
 
 from hadoop_fs_wrapper.wrappers.file_system import FileSystem
 
 from spark_utils.common.spark_job_args import SparkJobArgs
 from spark_utils.models.job_socket import JobSocket
+from spark_utils.dataframes.functions import union_dataframes
 
 
 def merge_or_create_table(spark_args: SparkJobArgs, spark_session: SparkSession, table_name: str,
@@ -37,3 +40,17 @@ def merge_or_create_table(spark_args: SparkJobArgs, spark_session: SparkSession,
             """) \
             .whenNotMatchedInsertAll() \
             .execute()
+
+
+def union_views_to_schema(spark_session: SparkSession, schema: List[StructField], views: List[str]) -> DataFrame:
+    """
+      Combines all views and forces them into provided schema by adding missing columns filled with nulls
+    :param spark_session: Spark Session to run the statement
+    :param schema: Schema to enforce
+    :param views: List of views to combine
+    :return: Combined dataframe
+    """
+    df_schema = spark_session.createDataFrame([], StructType(schema))
+    for view in views:
+        df_schema = union_dataframes(df_schema, spark_session.table(view))
+    return df_schema
