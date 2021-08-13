@@ -18,7 +18,7 @@ from spark_utils.common.spark_job_args import SparkJobArgs
     ],
 )
 def test_parse_source(source, expected, key):
-    sa = SparkJobArgs(job_name='test')
+    sa = SparkJobArgs()
     sa.parse([
         "--source", *source,
         "--output", "exchange-rates|file://data/test-result.json|json",
@@ -26,6 +26,30 @@ def test_parse_source(source, expected, key):
     ])
 
     assert sa.source(key).data_path == expected
+
+
+@pytest.mark.parametrize(
+    "columns",
+    [
+        pytest.param(
+            ["colA", "colB", "colC"],
+            id="1"
+        ),
+        pytest.param(
+            ["colA"],
+            id="2"
+        ),
+    ],
+)
+def test_parsed_args(columns):
+    sa = SparkJobArgs()
+    sa.new_arg("--columns", type=str, nargs='+', default=[],
+               help='Unit Test')
+    sa.parse([
+        "--columns", *columns
+    ])
+    assert sa.parsed_args.columns == columns
+
 
 
 @pytest.mark.parametrize(
@@ -42,7 +66,7 @@ def test_parse_source(source, expected, key):
     ],
 )
 def test_parse_overwrite(overwrite, expected):
-    sa = SparkJobArgs(job_name='test')
+    sa = SparkJobArgs()
     arglist = [
         "--source", "something|1|1",
         "--output", "anything|2|2",

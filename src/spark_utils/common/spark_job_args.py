@@ -24,8 +24,8 @@ class SparkJobArgs:
       - --overwrite
       Controls overwrite behaviour. Will wipe the whole directory if set and honored by job developer.
     """
-    def __init__(self, *, job_name):
-        self._parser = argparse.ArgumentParser(description=f"Runtime arguments for {job_name}")
+    def __init__(self):
+        self._parser = argparse.ArgumentParser(description="Runtime arguments")
         self._parser.add_argument("--source", type=str, nargs='+', default=[],
                                   help='Sources to read data from, in a form of <source key>:<source path>')
         self._parser.add_argument("--output", type=str, nargs='+', default=[],
@@ -45,16 +45,14 @@ class SparkJobArgs:
         for output in self._parsed_args.output:
             yield JobSocket(*output.split('|'))
 
-    def new_arg(self, *args):
+    def new_arg(self, *args, **kwargs):
         """
-         Adds one or more new arguments
-
+        Adds one or more new arguments
         :param args: argsparse.add_argument(...)
         :return:
         """
-        self._parser.add_argument(*args)
+        self._parser.add_argument(*args, **kwargs)
 
-        return self
 
     def parse(self, arg_list=None):
         """
@@ -107,3 +105,12 @@ class SparkJobArgs:
         :return: bool
         """
         return self._overwrite
+
+    @property
+    def parsed_args(self) -> argparse.Namespace:
+        """
+         Gets the parsed arguments
+
+        :return: Namespace
+        """
+        return self._parsed_args
