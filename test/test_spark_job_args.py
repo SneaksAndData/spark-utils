@@ -51,6 +51,15 @@ def test_parsed_args(columns):
     assert sa.parsed_args.columns == columns
 
 
+def test_new_arg_chain():
+    sa = SparkJobArgs()
+    parsed = sa\
+        .new_arg("--arg1", type=str, help='Argument 1')\
+        .new_arg("--arg2", type=str, help='Argument 2')\
+        .parse(["--arg1", "value1", "--arg2", "value2"])
+
+    assert parsed.parsed_args.arg1 == "value1" and parsed.parsed_args.arg2 == "value2"
+
 
 @pytest.mark.parametrize(
     "overwrite,expected",

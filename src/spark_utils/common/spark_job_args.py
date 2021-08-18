@@ -53,6 +53,8 @@ class SparkJobArgs:
         """
         self._parser.add_argument(*args, **kwargs)
 
+        return self
+
 
     def parse(self, arg_list=None):
         """
