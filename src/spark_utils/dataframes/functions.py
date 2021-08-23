@@ -2,12 +2,14 @@
   Helper functions for Spark Dataframes
 """
 
-from typing import List
+from typing import List, Optional
 
-from pyspark.sql import DataFrame, Column
-from pyspark.sql.functions import lit
+from hadoop_fs_wrapper.wrappers.file_system import FileSystem
+from pyspark.sql import DataFrame, Column, SparkSession
+from pyspark.sql.functions import lit, col
 
 from spark_utils.dataframes.sets.functions import case_insensitive_diff
+from spark_utils.models.job_socket import JobSocket
 
 
 def empty_column(col_name: str) -> Column:
@@ -44,8 +46,8 @@ def add_missing_columns(source_df: DataFrame, missing_column_names: List[str]) -
     :return: Dataframe with new columns from missing_column_names, initialized with nulls
     """
     new_df = None
-    for col in missing_column_names:
-        new_df = source_df.withColumn(col, empty_column(col))
+    for missing_col in missing_column_names:
+        new_df = source_df.withColumn(missing_col, empty_column(missing_col))
     return new_df
 
 
@@ -93,3 +95,58 @@ def union_dataframes(left_df: DataFrame, right_df: DataFrame) -> DataFrame:
     left_list_miss_cols = case_insensitive_diff(
         right_df_col_list, left_df_col_list)
     return order_and_union_dataframes(left_df, right_df, list(left_list_miss_cols), list(right_list_miss_cols))
+
+
+def rename_column(name: str) -> str:
+    """
+      Removes illegal column characters from a string
+
+    :param name: String to format
+    :return:
+    """
+
+    illegals = [
+        ' ',
+        ',',
+        ';',
+        '{',
+        '}',
+        '(',
+        ')',
+        '\t',
+        '='
+    ]
+
+    for illegal in illegals:
+        name = name.replace(illegal, '')
+
+    return name
+
+
+def rename_columns(dataframe: DataFrame) -> DataFrame:
+    """
+      Removes illegal characters from all columns
+
+    :param dataframe: Source dataframe
+    :return: Dataframe with renamed columns
+    """
+    return dataframe.select([col(c).alias(rename_column(c)) for c in dataframe.columns])
+
+
+def copy_dataframe_to_socket(spark_session: SparkSession, src: JobSocket, dest: JobSocket,
+                             read_options: Optional[dict] = None) -> None:
+    """
+      Copies data from src to dest JobSocket via a SparkSession
+
+    :param spark_session: Spark Session to use for copying
+    :param src: Source job socket
+    :param dest: Destination job socket
+    :param read_options: Spark session options to set when reading
+    :return:
+    """
+    src_df = spark_session.read.format(src.data_format).options(**read_options).load(src.data_path)
+    cleaned_columns_df = rename_columns(src_df)
+    output_file_system = FileSystem.from_spark_session(spark_session)
+    output_file_system.delete(path=dest.data_path, recursive=True)
+
+    cleaned_columns_df.write.format(dest.data_format).save(dest.data_path)
