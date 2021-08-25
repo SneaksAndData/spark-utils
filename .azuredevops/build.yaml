@@ -14,7 +14,7 @@ stages:
     jobs:
       - job: runTests
         container:
-          image: esdcrproduction.azurecr.io/spark:v0.0.5
+          image: esdcrproduction.azurecr.io/spark:v1.0.9-bitnami-3.1.2-python-3.9.6-0
           endpoint: esdcrproduction
           options: --user root
         displayName: Validate code
