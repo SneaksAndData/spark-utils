@@ -38,12 +38,12 @@ class SparkSessionProvider:
         if hive_metastore_config:
             if hive_metastore_config.connection_driver_name:
                 self._spark_session_builder = self._spark_session_builder \
-                    .config("spark.hadoop.hive.javax.jdo.option.ConnectionURL", hive_metastore_config.connection_url) \
-                    .config("spark.hadoop.hive.javax.jdo.option.ConnectionUserName",
+                    .config("spark.hadoop.javax.jdo.option.ConnectionURL", hive_metastore_config.connection_url) \
+                    .config("spark.hadoop.javax.jdo.option.ConnectionUserName",
                             hive_metastore_config.connection_username) \
-                    .config("spark.hadoop.hive.javax.jdo.option.ConnectionPassword",
+                    .config("spark.hadoop.javax.jdo.option.ConnectionPassword",
                             hive_metastore_config.connection_password) \
-                    .config("spark.hadoop.hive.javax.jdo.option.ConnectionDriverName",
+                    .config("spark.hadoop.javax.jdo.option.ConnectionDriverName",
                             hive_metastore_config.connection_driver_name)
             elif hive_metastore_config.metastore_uri:
                 self._spark_session_builder = self._spark_session_builder \
@@ -53,7 +53,8 @@ class SparkSessionProvider:
 
             self._spark_session_builder = self._spark_session_builder \
                 .config("spark.sql.hive.metastore.version", hive_metastore_config.metastore_version) \
-                .config("spark.sql.hive.metastore.jars", hive_metastore_config.metastore_jars)
+                .config("spark.sql.hive.metastore.jars", hive_metastore_config.metastore_jars)\
+                .config("spark.sql.catalogImplementation", "hive")
 
         if os.environ.get('PYTEST_CURRENT_TEST'):
             self._spark_session = self._spark_session_builder.master('local[*]').getOrCreate()
