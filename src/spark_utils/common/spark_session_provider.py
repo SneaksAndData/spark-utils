@@ -2,7 +2,7 @@
   Provides convenient building of a Spark Session
 """
 import os
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 from pyspark.sql import SparkSession
 
@@ -15,7 +15,8 @@ class SparkSessionProvider:
     """
 
     def __init__(self, *, delta_lake_version="2.12:1.0.0", hive_metastore_config: Optional[HiveMetastoreConfig] = None,
-                 additional_packages: Optional[List[str]] = None):
+                 additional_packages: Optional[List[str]] = None,
+                 additional_configs: Optional[Dict[str, str]] = None):
         """
         :param delta_lake_version: Delta lake package version
         :param hive_metastore_uri: Optional URI of a hive metastore that should be connected to this Spark Session
@@ -30,6 +31,8 @@ class SparkSessionProvider:
             .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
             .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
             .config("spark.jars.ivy", "/tmp/.ivy2") \
+            .config("spark.sql.legacy.parquet.datetimeRebaseModeInWrite", "CORRECTED") \
+            .config("spark.sql.legacy.parquet.int96RebaseModeInWrite", "CORRECTED") \
             .config("spark.driver.extraJavaOptions",
                     "-XX:+UseG1GC -XX:+UnlockDiagnosticVMOptions -XX:InitiatingHeapOccupancyPercent=35 -XX:OnOutOfMemoryError='kill -9 %p'") \
             .config("spark.executor.extraJavaOptions",
@@ -53,8 +56,12 @@ class SparkSessionProvider:
 
             self._spark_session_builder = self._spark_session_builder \
                 .config("spark.sql.hive.metastore.version", hive_metastore_config.metastore_version) \
-                .config("spark.sql.hive.metastore.jars", hive_metastore_config.metastore_jars)\
+                .config("spark.sql.hive.metastore.jars", hive_metastore_config.metastore_jars) \
                 .config("spark.sql.catalogImplementation", "hive")
+
+        if additional_configs:
+            for config_key, config_value in additional_configs.items():
+                self._spark_session_builder = self._spark_session_builder.config(config_key, config_value)
 
         if os.environ.get('PYTEST_CURRENT_TEST'):
             self._spark_session = self._spark_session_builder.master('local[*]').getOrCreate()
