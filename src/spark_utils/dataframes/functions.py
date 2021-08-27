@@ -2,13 +2,15 @@
   Helper functions for Spark Dataframes
 """
 
-from typing import List, Optional
+from typing import List, Optional, Iterator, Tuple
 
 from hadoop_fs_wrapper.wrappers.file_system import FileSystem
+from pyspark import Row
 from pyspark.sql import DataFrame, Column, SparkSession
 from pyspark.sql.functions import lit, col
 
 from spark_utils.dataframes.sets.functions import case_insensitive_diff
+from spark_utils.models.hive_table import HiveTableColumn
 from spark_utils.models.job_socket import JobSocket
 
 
@@ -150,3 +152,38 @@ def copy_dataframe_to_socket(spark_session: SparkSession, src: JobSocket, dest: 
     output_file_system.delete(path=dest.data_path, recursive=True)
 
     cleaned_columns_df.write.format(dest.data_format).save(dest.data_path)
+
+
+def get_dataframe_columns(rows: Iterator[Row]) -> Iterator[HiveTableColumn]:
+    """
+     Reads columns from extended dataframe definition
+
+    :param rows: Dataframe rows produced by describe table extended (df.toLocalIterator())
+    :return:
+    """
+    for t_row in rows:
+        if t_row['col_name']:
+            yield HiveTableColumn(
+                name=t_row['col_name'],
+                type=t_row['data_type']
+            )
+        else:
+            break
+
+
+def get_dataframe_partitions(rows: Iterator[Row]) -> Iterator[Tuple[int, str]]:
+    """
+      Reads Partitioning section from extended table description
+    :param rows: Dataframe rows produced by describe table extended (df.toLocalIterator())
+    :return:
+    """
+    skip = True
+    for t_row in rows:
+        # catch when partitioning section starts
+        if t_row["col_name"] == "# Partitioning":
+            skip = False
+            continue
+        if not skip and t_row["col_name"]:
+            yield int(str(t_row['col_name']).replace("Part ", "")), t_row['data_type']
+        elif not skip and not t_row["col_name"]:
+            break
