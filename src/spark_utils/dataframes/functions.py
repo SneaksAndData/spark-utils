@@ -116,7 +116,9 @@ def rename_column(name: str) -> str:
         '(',
         ')',
         '\t',
-        '='
+        '=',
+        '/',
+        '\\',
     ]
 
     for illegal in illegals:
