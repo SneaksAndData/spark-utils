@@ -164,7 +164,7 @@ def get_dataframe_columns(rows: Iterator[Row]) -> Iterator[HiveTableColumn]:
     for t_row in rows:
         if t_row['col_name']:
             yield HiveTableColumn(
-                name=t_row['col_name'],
+                name=rename_column(t_row['col_name']),
                 type=t_row['data_type']
             )
         else:
@@ -186,7 +186,7 @@ def get_dataframe_partitions(rows: Iterator[Row]) -> Iterator[Tuple[int, str]]:
         if not skip and t_row["col_name"]:
             part_index_str = str(t_row['col_name']).replace("Part ", "")
             if part_index_str.isdigit():
-                yield int(part_index_str), t_row['data_type']
+                yield int(part_index_str), rename_column(t_row['data_type'])
             else:
                 break
         elif not skip and not t_row["col_name"]:
