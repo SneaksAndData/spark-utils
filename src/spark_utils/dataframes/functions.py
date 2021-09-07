@@ -184,6 +184,10 @@ def get_dataframe_partitions(rows: Iterator[Row]) -> Iterator[Tuple[int, str]]:
             skip = False
             continue
         if not skip and t_row["col_name"]:
-            yield int(str(t_row['col_name']).replace("Part ", "")), t_row['data_type']
+            part_index_str = str(t_row['col_name']).replace("Part ", "")
+            if part_index_str.isdigit():
+                yield int(part_index_str), t_row['data_type']
+            else:
+                break
         elif not skip and not t_row["col_name"]:
             break

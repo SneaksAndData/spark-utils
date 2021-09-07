@@ -32,11 +32,7 @@ class SparkSessionProvider:
             .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
             .config("spark.jars.ivy", "/tmp/.ivy2") \
             .config("spark.sql.legacy.parquet.datetimeRebaseModeInWrite", "CORRECTED") \
-            .config("spark.sql.legacy.parquet.int96RebaseModeInWrite", "CORRECTED") \
-            .config("spark.driver.extraJavaOptions",
-                    "-XX:+UseG1GC -XX:+UnlockDiagnosticVMOptions -XX:InitiatingHeapOccupancyPercent=35 -XX:OnOutOfMemoryError='kill -9 %p'") \
-            .config("spark.executor.extraJavaOptions",
-                    "-XX:+UseG1GC -XX:+UnlockDiagnosticVMOptions -XX:InitiatingHeapOccupancyPercent=35 -XX:OnOutOfMemoryError='kill -9 %p'")
+            .config("spark.sql.legacy.parquet.int96RebaseModeInWrite", "CORRECTED")
 
         if hive_metastore_config:
             if hive_metastore_config.connection_driver_name:
