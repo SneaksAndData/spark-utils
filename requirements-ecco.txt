@@ -1,1 +1,1 @@
-hadoop-fs-wrapper==0.1.10
+hadoop-fs-wrapper==0.2.1
