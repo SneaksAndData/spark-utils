@@ -30,3 +30,22 @@ def test_copy_dataframe_to_socket(spark_session: SparkSession):
 
     files = os.listdir(f"{test_data_path}/out")
     assert len(files) > 0
+
+
+def test_copy_dataframe_to_socket_with_filename(spark_session: SparkSession):
+    test_data_path = f"{pathlib.Path(__file__).parent.resolve()}/copy_dataframe_to_socket"
+
+    copy_dataframe_to_socket(
+        spark_session=spark_session,
+        src=JobSocket('src', f'file:///{test_data_path}/file-to-copy', 'csv'),
+        dest=JobSocket('dst', f'file:///{test_data_path}/out', 'json'),
+        read_options={
+            "delimiter": ";",
+            "header": "true"
+        },
+        include_filename=True
+    )
+
+    files = [file for file in os.listdir(f"{test_data_path}/out") if file.endswith(".json")]
+    file_contents = open(f"{test_data_path}/out/{files[0]}", 'r').read()
+    assert 'file-to-copy' in file_contents

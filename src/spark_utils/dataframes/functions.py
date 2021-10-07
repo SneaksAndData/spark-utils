@@ -7,7 +7,7 @@ from typing import List, Optional, Iterator, Tuple
 from hadoop_fs_wrapper.wrappers.file_system import FileSystem
 from pyspark import Row
 from pyspark.sql import DataFrame, Column, SparkSession
-from pyspark.sql.functions import lit, col
+from pyspark.sql.functions import lit, col, input_file_name
 
 from spark_utils.dataframes.sets.functions import case_insensitive_diff
 from spark_utils.models.hive_table import HiveTableColumn
@@ -137,8 +137,11 @@ def rename_columns(dataframe: DataFrame) -> DataFrame:
     return dataframe.select([col(c).alias(rename_column(c)) for c in dataframe.columns])
 
 
-def copy_dataframe_to_socket(spark_session: SparkSession, src: JobSocket, dest: JobSocket,
-                             read_options: Optional[dict] = None) -> None:
+def copy_dataframe_to_socket(spark_session: SparkSession,
+                             src: JobSocket,
+                             dest: JobSocket,
+                             read_options: Optional[dict] = None,
+                             include_filename=False) -> None:
     """
       Copies data from src to dest JobSocket via a SparkSession
 
@@ -146,12 +149,17 @@ def copy_dataframe_to_socket(spark_session: SparkSession, src: JobSocket, dest: 
     :param src: Source job socket
     :param dest: Destination job socket
     :param read_options: Spark session options to set when reading
+    :param include_filename: Adds "filename" column to the destination output.
     :return:
     """
     src_df = spark_session.read.format(src.data_format).options(**read_options).load(src.data_path)
     cleaned_columns_df = rename_columns(src_df)
     output_file_system = FileSystem.from_spark_session(spark_session)
     output_file_system.delete(path=dest.data_path, recursive=True)
+
+    if include_filename:
+        cleaned_columns_df = cleaned_columns_df \
+            .withColumn("filename", input_file_name())
 
     cleaned_columns_df.write.format(dest.data_format).save(dest.data_path)
 
