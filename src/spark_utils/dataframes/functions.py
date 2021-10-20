@@ -141,7 +141,8 @@ def copy_dataframe_to_socket(spark_session: SparkSession,
                              src: JobSocket,
                              dest: JobSocket,
                              read_options: Optional[dict] = None,
-                             include_filename=False) -> None:
+                             include_filename=False,
+                             include_row_sequence=False) -> None:
     """
       Copies data from src to dest JobSocket via a SparkSession
 
@@ -160,6 +161,13 @@ def copy_dataframe_to_socket(spark_session: SparkSession,
     if include_filename:
         cleaned_columns_df = cleaned_columns_df \
             .withColumn("filename", input_file_name())
+
+    if include_row_sequence:
+        cleaned_colums_rdd = cleaned_columns_df \
+            .rdd.zipWithIndex() \
+            .map(lambda x: list(x[0]) + [x[1]])
+        cleaned_columns_df = cleaned_colums_rdd \
+            .toDF(cleaned_columns_df.withColumn('row_sequence', lit(0)).schema)
 
     cleaned_columns_df.write.format(dest.data_format).save(dest.data_path)
 
