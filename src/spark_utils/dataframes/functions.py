@@ -4,11 +4,14 @@
 
 from typing import List, Optional, Iterator, Tuple
 
+from datetime import datetime
+
 from hadoop_fs_wrapper.wrappers.file_system import FileSystem
 from pyspark import Row
 from pyspark.sql import DataFrame, Column, SparkSession
-from pyspark.sql.functions import lit, col, input_file_name
+from pyspark.sql.functions import lit, col, input_file_name, to_timestamp, max as df_max
 
+from spark_utils.common.functions import is_valid_source_path
 from spark_utils.dataframes.sets.functions import case_insensitive_diff
 from spark_utils.models.hive_table import HiveTableColumn
 from spark_utils.models.job_socket import JobSocket
@@ -137,12 +140,28 @@ def rename_columns(dataframe: DataFrame) -> DataFrame:
     return dataframe.select([col(c).alias(rename_column(c)) for c in dataframe.columns])
 
 
+def _max_timestamp(dataframe: DataFrame, timestamp_column: str, timestamp_column_format: str) -> datetime:
+    """
+      Returns max of a provided timestamp column, using provided format.
+    :param dataframe: Dataframe to perform computation on.
+    :param timestamp_column: Timestamp column to max.
+    :param timestamp_column_format: Timestamp column format.
+    :return: max timestamp.
+    """
+    return dataframe.select(
+        to_timestamp(col(timestamp_column), timestamp_column_format).alias(timestamp_column)).agg(
+        df_max(col(timestamp_column)).alias(timestamp_column)).head(1)[0][0]
+
+
 def copy_dataframe_to_socket(spark_session: SparkSession,
                              src: JobSocket,
                              dest: JobSocket,
                              read_options: Optional[dict] = None,
                              include_filename=False,
-                             include_row_sequence=False) -> None:
+                             include_row_sequence=False,
+                             clean_destination=True,
+                             timestamp_column: Optional[str] = None,
+                             timestamp_column_format: Optional[str] = None) -> dict:
     """
       Copies data from src to dest JobSocket via a SparkSession
 
@@ -151,25 +170,61 @@ def copy_dataframe_to_socket(spark_session: SparkSession,
     :param dest: Destination job socket
     :param read_options: Spark session options to set when reading
     :param include_filename: Adds "filename" column to the destination output.
-    :return:
+    :param include_row_sequence: Adds "sequence_number" column to the destination output.
+    :param clean_destination: Wipe destination path before starting a copy.
+    :param timestamp_column: Column name to use for evaluating data age.
+    :param timestamp_column_format: Format for the timestamp
+    :return: dict of (original_row_count, original_content_age, row_count, content_age)
     """
-    src_df = spark_session.read.format(src.data_format).options(**read_options).load(src.data_path)
-    cleaned_columns_df = rename_columns(src_df)
+
+    if timestamp_column:
+        assert timestamp_column_format, \
+            'When specifying timestamp_column, you must provide timestamp_column_format as well.'
+
     output_file_system = FileSystem.from_spark_session(spark_session)
-    output_file_system.delete(path=dest.data_path, recursive=True)
+
+    if clean_destination:
+        output_file_system.delete(path=dest.data_path, recursive=True)
+
+    copy_stats = {
+        'original_row_count': 0,
+        'original_content_age': 0,
+        'row_count': 0,
+        'content_age': 0
+    }
+
+    if is_valid_source_path(
+            file_system=output_file_system,
+            path=dest.data_path
+    ):
+        original_df = spark_session.read.format(dest.data_format).load(dest.data_path)
+        copy_stats['original_row_count'] = original_df.count()
+        if timestamp_column:
+            original_max_ts = _max_timestamp(original_df, timestamp_column, timestamp_column_format)
+            copy_stats['original_content_age'] = int((datetime.utcnow() - original_max_ts).total_seconds())
+
+    cleaned_columns_df = rename_columns(
+        spark_session.read.format(src.data_format).options(**read_options).load(src.data_path))
 
     if include_filename:
         cleaned_columns_df = cleaned_columns_df \
             .withColumn("filename", input_file_name())
 
     if include_row_sequence:
-        cleaned_colums_rdd = cleaned_columns_df \
+        cleaned_columns_df = cleaned_columns_df \
             .rdd.zipWithIndex() \
-            .map(lambda x: list(x[0]) + [x[1]])
-        cleaned_columns_df = cleaned_colums_rdd \
+            .map(lambda x: list(x[0]) + [x[1]]) \
             .toDF(cleaned_columns_df.withColumn('row_sequence', lit(0)).schema)
 
+    copy_stats['row_count'] = cleaned_columns_df.count()
+
+    if timestamp_column:
+        max_ts = _max_timestamp(cleaned_columns_df, timestamp_column, timestamp_column_format)
+        copy_stats['content_age'] = int((datetime.utcnow() - max_ts).total_seconds())
+
     cleaned_columns_df.write.format(dest.data_format).save(dest.data_path)
+
+    return copy_stats
 
 
 def get_dataframe_columns(rows: Iterator[Row]) -> Iterator[HiveTableColumn]:

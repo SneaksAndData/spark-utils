@@ -11,20 +11,69 @@ from spark_utils.dataframes.functions import get_dataframe_columns, get_datafram
 from spark_utils.models.hive_table import HiveTableColumn
 
 
-def publish_delta_to_hive(spark_session: SparkSession, publish_table_name: str, publish_schema_name: str,
-                          data_path: str, refresh: bool = False):
+def _generate_table_ddl(*,
+                        publish_as_symlink: bool,
+                        publish_schema_name: str,
+                        publish_table_name: str,
+                        column_str: str,
+                        partition_str: str,
+                        location: str) -> str:
+    """
+      Generates CREATE ... TABLE  statement for Spark SQL.
+
+    :param publish_as_symlink: Generate CREATE EXTERNAL TABLE with SymlinkTextInputFormat input format
+    :param publish_schema_name: Hive schema to publish to.
+    :param publish_table_name: Hive table.
+    :param column_str: Column list, <col> <type>, comma-separated
+    :param partition_str: Partition list, <col> <type>, comma-separated. Must not overlap with column list.
+    :param location: Physical data location.
+    :return:
+    """
+    if publish_as_symlink:
+        return f"""
+        CREATE EXTERNAL TABLE {publish_schema_name}.{publish_table_name} ({column_str})
+        {partition_str}
+        ROW FORMAT SERDE 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe'
+        STORED AS INPUTFORMAT 'org.apache.hadoop.hive.ql.io.SymlinkTextInputFormat'
+        OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+        LOCATION '{location}/_symlink_format_manifest/'
+        """
+
+    return f"""
+        CREATE TABLE {publish_schema_name}.{publish_table_name} ({column_str})
+        {partition_str}
+        USING delta 
+        LOCATION '{location}' 
+        """
+
+
+def publish_delta_to_hive(spark_session: SparkSession,
+                          publish_table_name: str,
+                          publish_schema_name: str,
+                          data_path: str,
+                          refresh: bool = False,
+                          publish_as_symlink=True):
     """
       Generate symlink manifest and create an external table in a Hive Metastore used by a SparkSession provided
+
+      OR
+
+      Generate simple Hive table linked to abfss path
 
     :param spark_session: SparkSession that is configured to use an external Hive Metastore
     :param publish_table_name: Name of a table to publish
     :param publish_schema_name: Name of a schema to publish
     :param data_path: Path to delta table
     :param refresh: Drop existing definition befor running CREATE TABLE
+    :param publish_as_symlink: Generate symlink format manifest to make table readable from Trino
     :return:
     """
+
+    spark_session.sql(f"CREATE SCHEMA IF NOT EXISTS {publish_schema_name}")
+    if refresh:
+        spark_session.sql(f"DROP TABLE IF EXISTS {publish_schema_name}.{publish_table_name}")
+
     delta_table = DeltaTable.forPath(spark_session, data_path)
-    delta_table.generate("symlink_format_manifest")
 
     (columns, partitions, location) = get_table_info(spark_session, data_path)
 
@@ -32,18 +81,17 @@ def publish_delta_to_hive(spark_session: SparkSession, publish_table_name: str, 
     partition_str = ','.join(map(lambda t_col: f"{t_col.name} {t_col.type}", partitions))
     partition_str = '' if not partition_str else f"PARTITIONED BY ({partition_str})"
 
-    create_table_sql = f"""
-    CREATE EXTERNAL TABLE {publish_schema_name}.{publish_table_name} ({column_str})
-    {partition_str}
-    ROW FORMAT SERDE 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe'
-    STORED AS INPUTFORMAT 'org.apache.hadoop.hive.ql.io.SymlinkTextInputFormat'
-    OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-    LOCATION '{location}/_symlink_format_manifest/'
-    """
+    if publish_as_symlink:
+        delta_table.generate("symlink_format_manifest")
 
-    spark_session.sql(f"CREATE SCHEMA IF NOT EXISTS {publish_schema_name}")
-    if refresh:
-        spark_session.sql(f"DROP TABLE IF EXISTS {publish_schema_name}.{publish_table_name}")
+    create_table_sql = _generate_table_ddl(
+        publish_as_symlink=publish_as_symlink,
+        publish_schema_name=publish_schema_name,
+        publish_table_name=publish_table_name,
+        column_str=column_str,
+        partition_str=partition_str,
+        location=location
+    )
 
     spark_session.sql(create_table_sql)
 

@@ -4,6 +4,8 @@ trigger:
 
 variables:
   isMain: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
+  VENV_CACHE_DIR: $(Pipeline.Workspace)/s/sparkutils
+  PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
 
 pool:
   vmImage: ubuntu-latest
@@ -19,15 +21,28 @@ stages:
           options: --user root
         displayName: Validate code
         steps:
+          - task: Cache@2
+            inputs:
+              key: 'python | "$(Agent.OS)" | requirements.txt | requirements-dev.txt'
+              restoreKeys: |
+                python | "$(Agent.OS)"
+                python
+              path: $(VENV_CACHE_DIR)
+            displayName: Restore venv
+          - task: Cache@2
+            inputs:
+              key: 'pip | "$(Agent.OS)" | requirements.txt | requirements-dev.txt'
+              restoreKeys: |
+                pip | "$(Agent.OS)"
+                pip
+              path: $(PIP_CACHE_DIR)
+            displayName: Restore pip cache
           - task: PipAuthenticate@1
             displayName: 'Set PIP_INDEX_URL'
             inputs:
               artifactFeeds: 'eccoSneaksAndData'
           - script: |
               set -e
-
-              pypath=$(pwd)
-              export PYTHONPATH="$pypath/src:$PYTHONPATH"
 
               python -m virtualenv sparkutils
               source sparkutils/bin/activate
@@ -44,8 +59,7 @@ stages:
               export PYTHONPATH="$pypath/src:$PYTHONPATH"
 
               source sparkutils/bin/activate
-              cd ./src/spark_utils
-              find . -type f -name "*.py" | xargs pylint
+              find src/spark_utils -type f -name "*.py" | xargs pylint
             displayName: Lint
           - script: |
               set -e
@@ -54,8 +68,7 @@ stages:
               export PYTHONPATH="$pypath/src:$PYTHONPATH"
 
               source sparkutils/bin/activate
-              cd ./test
-              pytest
+              pytest test/
             displayName: Unit test
       - job: setReleaseVersion
         displayName: Set Release Version
@@ -65,13 +78,23 @@ stages:
           - checkout: self
             persistCredentials: 'true'
           - script: |
-              currentMajor=$MAJOR_V
-              currentMinor=$MINOR_V
-              currentVersion=$(git describe --tags --abbrev=7)
-              currentRevision=$(echo $(echo $currentVersion | rev | cut -d. -f1) | rev | cut -d- -f1)
+              providedMajor=$MAJOR_V
+              providedMinor=$MINOR_V
 
-              nextRevision=$(( currentRevision + 1 ))
-              nextVersion="v$currentMajor.$currentMinor.$nextRevision"
+              currentMinor=$(echo $currentVersion | cut -d. -f2)
+              currentMajor=$(echo $currentVersion | cut -d. -f1 | cut -dv -f2)
+
+              currentVersion=$(git describe --tags --abbrev=7)
+
+              if [[ $currentMajor -eq $providedMajor ]] && [[ $providedMinor -eq $currentMinor ]];
+              then
+                currentRevision=$(echo $(echo $currentVersion | rev | cut -d. -f1) | rev | cut -d- -f1)
+                nextRevision=$(( currentRevision + 1 ))
+              else
+                nextRevision='0'
+              fi
+
+              nextVersion="v$providedMajor.$providedMinor.$nextRevision"
               git tag $nextVersion
               git push origin $nextVersion
             displayName: 'Update released version'
