@@ -81,10 +81,9 @@ stages:
               providedMajor=$MAJOR_V
               providedMinor=$MINOR_V
 
+              currentVersion=$(git describe --tags --abbrev=7)
               currentMinor=$(echo $currentVersion | cut -d. -f2)
               currentMajor=$(echo $currentVersion | cut -d. -f1 | cut -dv -f2)
-
-              currentVersion=$(git describe --tags --abbrev=7)
 
               if [[ $currentMajor -eq $providedMajor ]] && [[ $providedMinor -eq $currentMinor ]];
               then
