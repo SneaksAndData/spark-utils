@@ -69,7 +69,9 @@ def publish_delta_to_hive(spark_session: SparkSession,
     :return:
     """
 
-    spark_session.sql(f"CREATE SCHEMA IF NOT EXISTS {publish_schema_name}")
+    spark_session.sql(
+        f"CREATE SCHEMA IF NOT EXISTS {publish_schema_name} location 'abfss://{data_path[8:].split('/')[0]}/'"
+    )
     if refresh:
         spark_session.sql(f"DROP TABLE IF EXISTS {publish_schema_name}.{publish_table_name}")
 

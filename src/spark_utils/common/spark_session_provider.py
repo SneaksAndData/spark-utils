@@ -16,10 +16,15 @@ class SparkSessionProvider:
 
     def __init__(self, *, delta_lake_version="2.12:1.0.0", hive_metastore_config: Optional[HiveMetastoreConfig] = None,
                  additional_packages: Optional[List[str]] = None,
-                 additional_configs: Optional[Dict[str, str]] = None):
+                 additional_configs: Optional[Dict[str, str]] = None,
+                 run_local=False):
         """
         :param delta_lake_version: Delta lake package version
-        :param hive_metastore_uri: Optional URI of a hive metastore that should be connected to this Spark Session
+        :param hive_metastore_config: Optional configuration of a hive metastore that should be connected to this Spark Session
+        :param additional_packages: Additional jars to download. Would not override jars installed or provided from spark-submit.
+         This setting only works if a session is started from python and not spark-submit
+        :param additional_configs: Any additional spark configurations
+        :param run_local: Whether single-node local master should be used.
         """
 
         packages = [f"io.delta:delta-core_{delta_lake_version}"]
@@ -59,7 +64,7 @@ class SparkSessionProvider:
             for config_key, config_value in additional_configs.items():
                 self._spark_session_builder = self._spark_session_builder.config(config_key, config_value)
 
-        if os.environ.get('PYTEST_CURRENT_TEST'):
+        if os.environ.get('PYTEST_CURRENT_TEST') or run_local:
             self._spark_session = self._spark_session_builder.master('local[*]').getOrCreate()
         else:
             self._spark_session = self._spark_session_builder.getOrCreate()
