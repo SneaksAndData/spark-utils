@@ -78,6 +78,8 @@ stages:
           - checkout: self
             persistCredentials: 'true'
           - script: |
+              set -e
+
               providedMajor=$MAJOR_V
               providedMinor=$MINOR_V
 
