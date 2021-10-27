@@ -94,7 +94,7 @@ class MetricsService:
         metric_measure = measure_module.MeasureInt(name=metric_name,
                                                    description=metric_description,
                                                    unit=metric_units)
-        metric_view = view_module.View(name=f"{metric_name} view",
+        metric_view = view_module.View(name=f"{metric_name}",
                                        description=metric_description,
                                        columns=dimensions,
                                        measure=metric_measure,
