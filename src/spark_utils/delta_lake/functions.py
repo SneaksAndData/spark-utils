@@ -40,8 +40,7 @@ def _generate_table_ddl(*,
         """
 
     return f"""
-        CREATE TABLE {publish_schema_name}.{publish_table_name} ({column_str})
-        {partition_str}
+        CREATE TABLE {publish_schema_name}.{publish_table_name}
         USING delta 
         LOCATION '{location}' 
         """
