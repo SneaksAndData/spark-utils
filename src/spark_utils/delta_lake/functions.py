@@ -96,7 +96,7 @@ def publish_delta_to_hive(spark_session: SparkSession,
 
     spark_session.sql(create_table_sql)
 
-    if partition_str:
+    if partition_str and publish_as_symlink:
         spark_session.sql(f"""MSCK REPAIR TABLE {publish_schema_name}.{publish_table_name}""")
 
 
