@@ -222,7 +222,10 @@ def copy_dataframe_to_socket(spark_session: SparkSession,
         max_ts = _max_timestamp(cleaned_columns_df, timestamp_column, timestamp_column_format)
         copy_stats['content_age'] = int((datetime.utcnow() - max_ts).total_seconds())
 
-    cleaned_columns_df.write.format(dest.data_format).save(dest.data_path)
+    cleaned_columns_df\
+        .write\
+        .format(dest.data_format)\
+        .save(path=dest.data_path, mode='errorifexists' if clean_destination else 'append')
 
     return copy_stats
 
