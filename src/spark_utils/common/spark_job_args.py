@@ -5,7 +5,38 @@
 import argparse
 from typing import Optional, Iterable
 
+from spark_utils.common.functions import decrypt_sensitive
 from spark_utils.models.job_socket import JobSocket
+
+
+class DecryptAction(argparse.Action):
+    """
+      Action that performs decryption of a provided value using encryption key provided from the environment.
+    """
+
+    def __init__(self,
+                 option_strings,
+                 dest,
+                 const=None,
+                 default=None,
+                 required=False,
+                 **kwargs):
+        super().__init__(
+            option_strings=option_strings,
+            dest=dest,
+            nargs=1,
+            const=const,
+            default=default,
+            required=required,
+            **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        arg_value = values[0]
+        if arg_value.startswith("'"):
+            arg_value = arg_value[1:]
+        if arg_value.endswith("'"):
+            arg_value = arg_value[:-1]
+        setattr(namespace, self.dest, decrypt_sensitive(arg_value))
 
 
 class SparkJobArgs:
@@ -24,6 +55,7 @@ class SparkJobArgs:
       - --overwrite
       Controls overwrite behaviour. Will wipe the whole directory if set and honored by job developer.
     """
+
     def __init__(self):
         self._parser = argparse.ArgumentParser(description="Runtime arguments")
         self._parser.add_argument("--source", type=str, nargs='+', default=[],
@@ -55,6 +87,21 @@ class SparkJobArgs:
 
         return self
 
+    def new_encrypted_arg(self, *args, **kwargs):
+        """
+        Adds an argument that requires decryption before it can be used.
+
+        :param args: argsparse.add_argument(...)
+        :return:
+        """
+        if 'action' not in kwargs:
+            kwargs.setdefault('action', DecryptAction)
+        else:
+            kwargs['action'] = DecryptAction
+
+        self._parser.add_argument(*args, **kwargs)
+
+        return self
 
     def parse(self, arg_list=None):
         """

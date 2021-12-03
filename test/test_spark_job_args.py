@@ -1,6 +1,9 @@
-import pytest
+import os
 
-from spark_utils.common.spark_job_args import SparkJobArgs
+import pytest
+from cryptography.fernet import Fernet
+
+from spark_utils.common.spark_job_args import SparkJobArgs, DecryptAction
 
 
 @pytest.mark.parametrize(
@@ -53,9 +56,9 @@ def test_parsed_args(columns):
 
 def test_new_arg_chain():
     sa = SparkJobArgs()
-    parsed = sa\
-        .new_arg("--arg1", type=str, help='Argument 1')\
-        .new_arg("--arg2", type=str, help='Argument 2')\
+    parsed = sa \
+        .new_arg("--arg1", type=str, help='Argument 1') \
+        .new_arg("--arg2", type=str, help='Argument 2') \
         .parse(["--arg1", "value1", "--arg2", "value2"])
 
     assert parsed.parsed_args.arg1 == "value1" and parsed.parsed_args.arg2 == "value2"
@@ -85,3 +88,32 @@ def test_parse_overwrite(overwrite, expected):
     sa.parse(arglist)
 
     assert sa.overwrite() == expected
+
+
+@pytest.mark.parametrize(
+    "value,expected_value",
+    [
+        pytest.param(
+            "testabcd", "testabcd"
+        ),
+        pytest.param(
+            '', None
+        ),
+    ],
+)
+def test_encrypted_arg(value, expected_value):
+    test_key = Fernet.generate_key().decode('utf-8')
+    test_fernet = Fernet(test_key)
+    encrypted_value = test_fernet.encrypt(value.encode('utf-8')).decode('utf-8')
+
+    os.environ['RUNTIME_ENCRYPTION_KEY'] = test_key
+
+    sa = SparkJobArgs().new_encrypted_arg("--encrypted-arg", type=str, default=None, help="Test encrypted argument")
+
+    arglist = [
+        "--encrypted-arg", f"'{encrypted_value}'"
+    ]
+
+    parsed = sa.parse(arglist)
+
+    assert parsed.parsed_args.encrypted_arg == value
