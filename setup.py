@@ -25,7 +25,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'hadoop-fs-wrapper==0.2.2',
+        'hadoop-fs-wrapper~=0.3.0',
         'pyspark~=3.1.2',
         'pandas~=1.3.0',
         'delta-spark==1.0.*',
@@ -33,5 +33,5 @@ setuptools.setup(
     ],
     package_dir={"": "src"},
     packages=setuptools.find_packages(where="src"),
-    python_requires=">=3.6",
+    python_requires=">=3.8",
 )

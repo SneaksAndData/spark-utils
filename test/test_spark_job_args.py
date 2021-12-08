@@ -3,7 +3,7 @@ import os
 import pytest
 from cryptography.fernet import Fernet
 
-from spark_utils.common.spark_job_args import SparkJobArgs, DecryptAction
+from spark_utils.common.spark_job_args import SparkJobArgs
 
 
 @pytest.mark.parametrize(

@@ -1,11 +1,13 @@
 import os
 import pathlib
 import pytest
+from hadoop_fs_wrapper.wrappers.file_system import FileSystem
 
 from pyspark.sql import SparkSession
 
 from datetime import datetime
 
+from spark_utils.common.functions import is_valid_source_path
 from spark_utils.dataframes.functions import copy_dataframe_to_socket
 from spark_utils.common.spark_session_provider import SparkSessionProvider
 from spark_utils.models.job_socket import JobSocket
@@ -31,7 +33,8 @@ def test_copy_dataframe_to_socket(spark_session: SparkSession):
     )
 
     files = os.listdir(f"{test_data_path}/out")
-    assert len(files) > 0
+    assert is_valid_source_path(FileSystem.from_spark_session(spark_session), path=f"{test_data_path}/out") and len(
+        files) > 0
 
 
 def test_copy_dataframe_to_socket_with_filename(spark_session: SparkSession):
@@ -93,6 +96,6 @@ def test_copy_dataframe_to_socket_with_timestamp(spark_session: SparkSession):
     approx_age = (datetime.now() - datetime(2021, 10, 6, 1, 0, 0)).total_seconds()
 
     assert copy_stats['original_row_count'] == 0 \
-            and copy_stats['original_content_age'] == 0 \
-            and copy_stats['row_count'] == 4 \
-            and 1 - copy_stats['content_age'] / approx_age < 0.01
+           and copy_stats['original_content_age'] == 0 \
+           and copy_stats['row_count'] == 4 \
+           and 1 - copy_stats['content_age'] / approx_age < 0.01
