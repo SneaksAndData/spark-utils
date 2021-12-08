@@ -203,33 +203,29 @@ def copy_dataframe_to_socket(spark_session: SparkSession,
             original_max_ts = _max_timestamp(original_df, timestamp_column, timestamp_column_format)
             copy_stats['original_content_age'] = int((datetime.utcnow() - original_max_ts).total_seconds())
 
-    source_df = spark_session.read.format(src.data_format).options(**read_options).load(src.data_path)
+    cleaned_columns_df = rename_columns(
+        spark_session.read.format(src.data_format).options(**read_options).load(src.data_path))
 
-    if not source_df.first():
-        print(f'Source path {src.data_path} has no files that satisfy read condition. Exiting.')
-    else:
-        cleaned_columns_df = rename_columns(source_df)
+    if include_filename:
+        cleaned_columns_df = cleaned_columns_df \
+            .withColumn("filename", input_file_name())
 
-        if include_filename:
-            cleaned_columns_df = cleaned_columns_df \
-                .withColumn("filename", input_file_name())
+    if include_row_sequence:
+        cleaned_columns_df = cleaned_columns_df \
+            .rdd.zipWithIndex() \
+            .map(lambda x: list(x[0]) + [x[1]]) \
+            .toDF(cleaned_columns_df.withColumn('row_sequence', lit(0)).schema)
 
-        if include_row_sequence:
-            cleaned_columns_df = cleaned_columns_df \
-                .rdd.zipWithIndex() \
-                .map(lambda x: list(x[0]) + [x[1]]) \
-                .toDF(cleaned_columns_df.withColumn('row_sequence', lit(0)).schema)
+    copy_stats['row_count'] = cleaned_columns_df.count()
 
-        copy_stats['row_count'] = cleaned_columns_df.count()
+    if timestamp_column:
+        max_ts = _max_timestamp(cleaned_columns_df, timestamp_column, timestamp_column_format)
+        copy_stats['content_age'] = int((datetime.utcnow() - max_ts).total_seconds())
 
-        if timestamp_column:
-            max_ts = _max_timestamp(cleaned_columns_df, timestamp_column, timestamp_column_format)
-            copy_stats['content_age'] = int((datetime.utcnow() - max_ts).total_seconds())
-
-        cleaned_columns_df \
-            .write \
-            .format(dest.data_format) \
-            .save(path=dest.data_path, mode='errorifexists' if clean_destination else 'append')
+    cleaned_columns_df \
+        .write \
+        .format(dest.data_format) \
+        .save(path=dest.data_path, mode='errorifexists' if clean_destination else 'append')
 
     return copy_stats
 
