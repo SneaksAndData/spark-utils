@@ -2,7 +2,7 @@
   Helper functions for Spark Dataframes
 """
 
-from typing import List, Optional, Iterator, Tuple
+from typing import List, Iterator, Tuple
 
 from datetime import datetime
 
@@ -12,9 +12,9 @@ from pyspark.sql import DataFrame, Column, SparkSession
 from pyspark.sql.functions import lit, col, input_file_name, to_timestamp, max as df_max
 
 from spark_utils.common.functions import is_valid_source_path
+from spark_utils.dataframes.models import CopyDataOptions
 from spark_utils.dataframes.sets.functions import case_insensitive_diff
 from spark_utils.models.hive_table import HiveTableColumn
-from spark_utils.models.job_socket import JobSocket
 
 
 def empty_column(col_name: str) -> Column:
@@ -154,37 +154,25 @@ def _max_timestamp(dataframe: DataFrame, timestamp_column: str, timestamp_column
 
 
 def copy_dataframe_to_socket(spark_session: SparkSession,
-                             src: JobSocket,
-                             dest: JobSocket,
-                             read_options: Optional[dict] = None,
-                             include_filename=False,
-                             include_row_sequence=False,
-                             clean_destination=True,
-                             timestamp_column: Optional[str] = None,
-                             timestamp_column_format: Optional[str] = None) -> dict:
+                             copy_options: CopyDataOptions) -> dict:
     """
       Copies data from src to dest JobSocket via a SparkSession
 
     :param spark_session: Spark Session to use for copying
-    :param src: Source job socket
-    :param dest: Destination job socket
-    :param read_options: Spark session options to set when reading
-    :param include_filename: Adds "filename" column to the destination output.
-    :param include_row_sequence: Adds "sequence_number" column to the destination output.
-    :param clean_destination: Wipe destination path before starting a copy.
-    :param timestamp_column: Column name to use for evaluating data age.
-    :param timestamp_column_format: Format for the timestamp
+    :param copy_options: Copy options.
     :return: dict of (original_row_count, original_content_age, row_count, content_age)
     """
 
-    if timestamp_column:
-        assert timestamp_column_format, \
+    print(f"Running data copy using options: {copy_options}")
+
+    if copy_options.timestamp_column:
+        assert copy_options.timestamp_column_format, \
             'When specifying timestamp_column, you must provide timestamp_column_format as well.'
 
     output_file_system = FileSystem.from_spark_session(spark_session)
 
-    if clean_destination:
-        output_file_system.delete(path=dest.data_path, recursive=True)
+    if copy_options.clean_destination:
+        output_file_system.delete(path=copy_options.dest.data_path, recursive=True)
 
     copy_stats = {
         'original_row_count': 0,
@@ -195,37 +183,44 @@ def copy_dataframe_to_socket(spark_session: SparkSession,
 
     if is_valid_source_path(
             file_system=output_file_system,
-            path=dest.data_path
+            path=copy_options.dest.data_path
     ):
-        original_df = spark_session.read.format(dest.data_format).load(dest.data_path)
+        original_df = spark_session.read.format(copy_options.dest.data_format).load(copy_options.dest.data_path)
         copy_stats['original_row_count'] = original_df.count()
-        if timestamp_column:
-            original_max_ts = _max_timestamp(original_df, timestamp_column, timestamp_column_format)
+        if copy_options.timestamp_column:
+            original_max_ts = _max_timestamp(original_df, copy_options.timestamp_column,
+                                             copy_options.timestamp_column_format)
             copy_stats['original_content_age'] = int((datetime.utcnow() - original_max_ts).total_seconds())
 
-    cleaned_columns_df = rename_columns(
-        spark_session.read.format(src.data_format).options(**read_options).load(src.data_path))
+    source_df = spark_session.read.format(copy_options.src.data_format).options(**copy_options.read_options).load(
+        copy_options.src.data_path)
 
-    if include_filename:
-        cleaned_columns_df = cleaned_columns_df \
+    if copy_options.clean_column_names:
+        source_df = rename_columns(source_df)
+
+    if copy_options.include_filename:
+        source_df = source_df \
             .withColumn("filename", input_file_name())
 
-    if include_row_sequence:
-        cleaned_columns_df = cleaned_columns_df \
+    if copy_options.include_row_sequence:
+        source_df = source_df \
             .rdd.zipWithIndex() \
             .map(lambda x: list(x[0]) + [x[1]]) \
-            .toDF(cleaned_columns_df.withColumn('row_sequence', lit(0)).schema)
+            .toDF(source_df.withColumn('row_sequence', lit(0)).schema)
 
-    copy_stats['row_count'] = cleaned_columns_df.count()
+    copy_stats['row_count'] = source_df.count()
 
-    if timestamp_column:
-        max_ts = _max_timestamp(cleaned_columns_df, timestamp_column, timestamp_column_format)
+    if copy_options.timestamp_column:
+        max_ts = _max_timestamp(source_df, copy_options.timestamp_column, copy_options.timestamp_column_format)
         copy_stats['content_age'] = int((datetime.utcnow() - max_ts).total_seconds())
 
-    cleaned_columns_df \
+    if copy_options.output_file_count:
+        source_df = source_df.repartition(copy_options.output_file_count)
+
+    source_df \
         .write \
-        .format(dest.data_format) \
-        .save(path=dest.data_path, mode='errorifexists' if clean_destination else 'append')
+        .format(copy_options.dest.data_format) \
+        .save(path=copy_options.dest.data_path, mode='errorifexists' if copy_options.clean_destination else 'append')
 
     return copy_stats
 
