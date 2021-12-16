@@ -112,8 +112,6 @@ def get_table_info(spark_session: SparkSession, table_path: str) -> (
     definition_table = spark_session.sql(
         f"describe table extended delta.`{table_path}/`")
 
-    table_location = definition_table.where("col_name = 'Location'").head(1)[0]["data_type"]
-
     definition_table_rows = list(definition_table.toLocalIterator())
 
     cols = list(get_dataframe_columns(definition_table_rows))
@@ -130,6 +128,6 @@ def get_table_info(spark_session: SparkSession, table_path: str) -> (
                 if table_col.name == part:
                     parts.append(HiveTableColumn(table_col.name, table_col.type))
 
-        return [table_col for table_col in cols if table_col.name not in parts_names], parts, table_location
+        return [table_col for table_col in cols if table_col.name not in parts_names], parts, table_path
 
-    return cols, [], table_location
+    return cols, [], table_path
