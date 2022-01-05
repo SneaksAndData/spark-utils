@@ -25,10 +25,10 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'hadoop-fs-wrapper~=0.3.0',
-        'pyspark~=3.1.2',
+        'hadoop-fs-wrapper~=0.4.0',
+        'pyspark~=3.2.0',
         'pandas~=1.3.0',
-        'delta-spark==1.0.*',
+        'delta-spark==1.1.*',
         'opencensus-ext-azure==1.1.*',
     ],
     package_dir={"": "src"},
