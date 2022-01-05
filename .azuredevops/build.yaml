@@ -16,8 +16,8 @@ stages:
     jobs:
       - job: runTests
         container:
-          image: esdcrproduction.azurecr.io/spark:v1.1.13-bitnami-3.1.2-python-3.9.6-0
-          endpoint: esdcrproduction
+          image: esdcrdevelopment.azurecr.io/spark:v1.2.2-4-g67e055b-bitnami-3.2.0-python-3.9.7-0
+          endpoint: esdcrdevelopment
           options: -u root -w /opt/bitnami/spark --mount type=tmpfs,destination=/home/spark
         displayName: Validate code
         steps:

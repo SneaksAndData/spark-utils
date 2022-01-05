@@ -50,10 +50,9 @@ def add_missing_columns(source_df: DataFrame, missing_column_names: List[str]) -
     :param missing_column_names: Columns to add
     :return: Dataframe with new columns from missing_column_names, initialized with nulls
     """
-    new_df = None
     for missing_col in missing_column_names:
-        new_df = source_df.withColumn(missing_col, empty_column(missing_col))
-    return new_df
+        source_df = source_df.withColumn(missing_col, empty_column(missing_col))
+    return source_df
 
 
 def order_and_union_dataframes(left_df: DataFrame, right_df: DataFrame, left_list_miss_cols: List[str],
