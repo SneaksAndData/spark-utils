@@ -14,7 +14,7 @@ class SparkSessionProvider:
       Provider of a Spark session and related objects
     """
 
-    def __init__(self, *, delta_lake_version="2.12:1.0.0", hive_metastore_config: Optional[HiveMetastoreConfig] = None,
+    def __init__(self, *, delta_lake_version="2.12:1.1.0", hive_metastore_config: Optional[HiveMetastoreConfig] = None,
                  additional_packages: Optional[List[str]] = None,
                  additional_configs: Optional[Dict[str, str]] = None,
                  run_local=False):
