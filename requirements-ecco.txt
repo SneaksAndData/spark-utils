@@ -1,1 +1,0 @@
-hadoop-fs-wrapper==0.4.0
