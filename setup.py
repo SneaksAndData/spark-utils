@@ -1,6 +1,11 @@
 import subprocess
 import setuptools
 
+from pathlib import Path
+
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
+
 
 def get_version():
     base_version = subprocess.check_output(["git", "describe", "--tags", "--abbrev=7"]).strip().decode("utf-8")
@@ -17,6 +22,8 @@ setuptools.setup(
     name='spark-utils',
     version=get_version(),
     description='Spark utilities for ESD Spark Runtime',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     author='ESD',
     author_email='esdsupport@ecco.com',
     classifiers=[
