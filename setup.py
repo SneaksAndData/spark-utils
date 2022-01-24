@@ -21,10 +21,10 @@ def get_version():
 setuptools.setup(
     name='spark-utils',
     version=get_version(),
-    description='Spark utilities for ESD Spark Runtime',
+    description='Utility classes for convenient coding of Spark jobs',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    author='ESD',
+    author='ECCO Sneaks & Data',
     author_email='esdsupport@ecco.com',
     classifiers=[
         "Programming Language :: Python :: 3",
