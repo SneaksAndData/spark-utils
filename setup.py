@@ -34,7 +34,7 @@ setuptools.setup(
     install_requires=[
         'hadoop-fs-wrapper==0.4.*',
         'pyspark~=3.2.0',
-        'pandas~=1.3.0',
+        'pandas>=1.3,<1.5',
         'delta-spark==1.1.*',
         'opencensus-ext-azure==1.1.*',
     ],
