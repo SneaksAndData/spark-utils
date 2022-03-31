@@ -1,28 +1,28 @@
 import os
 import pytest
-from typing import Tuple
+from collections import namedtuple
 
 from pyspark.sql import SparkSession
 
 from spark_utils.models.job_socket import JobSocket
 from spark_utils.common.functions import read_from_socket
 
-
+Format = namedtuple('format', ['format', 'spark_options'])
 @pytest.mark.parametrize('format_', [
-    ('csv', {'header': True}),
-    ('json', {}),
-    ('parquet', {})
+    Format(format='csv', spark_options={'header': True}),
+    Format(format='json', spark_options={'header': True}),
+    Format(format='parquet', spark_options={'header': True}),
 ])
-def test_read_from_socket(format_: Tuple[str, dict], spark_session: SparkSession, test_base_path: str):
+def test_read_from_socket(format_: Format, spark_session: SparkSession, test_base_path: str):
 
     test_data_path = os.path.join(test_base_path, 'test_common_functions')
 
     socket = JobSocket(
         alias='test',
-        data_path=f'file:///{os.path.join(test_data_path, f"data.{format_[0]}")}',
-        data_format=format_[0],
+        data_path=f'file:///{os.path.join(test_data_path, f"data.{format_.format}")}',
+        data_format=format_.format,
     )
-    df = read_from_socket(socket=socket, spark_session=spark_session, **format_[1])
+    df = read_from_socket(socket=socket, spark_session=spark_session, **format_.spark_options)
 
     assert sorted(df.columns) == sorted(['strings', 'ints', 'floats'])
 
