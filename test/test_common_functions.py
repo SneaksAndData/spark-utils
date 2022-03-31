@@ -10,8 +10,8 @@ from spark_utils.common.functions import read_from_socket
 Format = namedtuple('format', ['format', 'spark_options'])
 @pytest.mark.parametrize('format_', [
     Format(format='csv', spark_options={'header': True}),
-    Format(format='json', spark_options={'header': True}),
-    Format(format='parquet', spark_options={'header': True}),
+    Format(format='json', spark_options={}),
+    Format(format='parquet', spark_options={}),
 ])
 def test_read_from_socket(format_: Format, spark_session: SparkSession, test_base_path: str):
 
