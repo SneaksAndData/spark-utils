@@ -1,6 +1,6 @@
 import os
 import pathlib
-import pytest
+import uuid
 from hadoop_fs_wrapper.wrappers.file_system import FileSystem
 
 from pyspark.sql import SparkSession
@@ -9,19 +9,12 @@ from datetime import datetime
 
 from spark_utils.common.functions import is_valid_source_path
 from spark_utils.dataframes.functions import copy_dataframe_to_socket
-from spark_utils.common.spark_session_provider import SparkSessionProvider
 from spark_utils.dataframes.models import CopyDataOptions
 from spark_utils.models.job_socket import JobSocket
 
 
-@pytest.fixture()
-def spark_session():
-    provider = SparkSessionProvider()
-    return provider.get_session()
-
-
-def test_copy_dataframe_to_socket(spark_session: SparkSession):
-    test_data_path = f"{pathlib.Path(__file__).parent.resolve()}/copy_dataframe_to_socket"
+def test_copy_dataframe_to_socket(spark_session: SparkSession, test_base_path: str):
+    test_data_path = os.path.join(test_base_path, 'copy_dataframe_to_socket')
 
     copy_dataframe_to_socket(
         spark_session=spark_session,
@@ -40,8 +33,8 @@ def test_copy_dataframe_to_socket(spark_session: SparkSession):
         files) > 0
 
 
-def test_copy_dataframe_to_socket_with_filename(spark_session: SparkSession):
-    test_data_path = f"{pathlib.Path(__file__).parent.resolve()}/copy_dataframe_to_socket"
+def test_copy_dataframe_to_socket_with_filename(spark_session: SparkSession, test_base_path: str):
+    test_data_path = os.path.join(test_base_path, 'copy_dataframe_to_socket')
 
     copy_dataframe_to_socket(
         spark_session=spark_session,
@@ -61,8 +54,8 @@ def test_copy_dataframe_to_socket_with_filename(spark_session: SparkSession):
     assert 'file-to-copy' in file_contents
 
 
-def test_copy_dataframe_to_socket_with_sequence(spark_session: SparkSession):
-    test_data_path = f"{pathlib.Path(__file__).parent.resolve()}/copy_dataframe_to_socket"
+def test_copy_dataframe_to_socket_with_sequence(spark_session: SparkSession, test_base_path: str):
+    test_data_path = os.path.join(test_base_path, 'copy_dataframe_to_socket')
 
     copy_dataframe_to_socket(
         spark_session=spark_session,
@@ -87,11 +80,12 @@ def test_copy_dataframe_to_socket_with_sequence(spark_session: SparkSession):
 def test_copy_dataframe_to_socket_with_timestamp(spark_session: SparkSession):
     test_data_path = f"{pathlib.Path(__file__).parent.resolve()}/copy_dataframe_to_socket"
 
+    uuid_ = str(uuid.uuid4())
     copy_stats = copy_dataframe_to_socket(
         spark_session=spark_session,
         copy_options=CopyDataOptions(
             src=JobSocket('src', f'file:///{test_data_path}/file-to-copy-with-ts', 'csv'),
-            dest=JobSocket('dst', f'file:///{test_data_path}/out-with-ts', 'json'),
+            dest=JobSocket('dst', f'file:///{test_data_path}/{uuid_}', 'json'),
             read_options={
                 "delimiter": ";",
                 "header": "true"
