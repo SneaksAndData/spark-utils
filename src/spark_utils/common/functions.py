@@ -67,6 +67,7 @@ def read_from_socket(socket: JobSocket, spark_session: SparkSession, **kwargs) -
 
     :param socket: Socket
     :param spark_session: Spark session
+    :param kwargs: Keyword arguments passed to spark read options
     :return: Spark dataframe
     """
     return spark_session \
