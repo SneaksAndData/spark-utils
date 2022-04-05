@@ -6,8 +6,7 @@ from spark_utils.common.spark_session_provider import SparkSessionProvider
 
 @pytest.fixture(scope="module")
 def spark_session():
-    provider = SparkSessionProvider()
-    return provider.get_session()
+    return SparkSessionProvider().get_session()
 
 
 @pytest.fixture(scope="module")
