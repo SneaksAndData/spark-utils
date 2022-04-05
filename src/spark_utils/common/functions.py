@@ -27,7 +27,10 @@ import os
 from typing import Optional
 
 from cryptography.fernet import Fernet
+from pyspark.sql import SparkSession, DataFrame
 from hadoop_fs_wrapper.wrappers.file_system import FileSystem
+
+from spark_utils.models.job_socket import JobSocket
 
 
 def is_valid_source_path(file_system: FileSystem, path: str):
@@ -57,3 +60,18 @@ def decrypt_sensitive(sensitive_content: Optional[str]) -> Optional[str]:
         return fernet.decrypt(sensitive_content.encode('utf-8')).decode('utf-8')
 
     return None
+
+
+def read_from_socket(socket: JobSocket, spark_session: SparkSession, **kwargs) -> DataFrame:
+    """Reads data with location specified by socket. kwargs are passed to spark options
+
+    :param socket: Socket
+    :param spark_session: Spark session
+    :param kwargs: Keyword arguments passed to spark read options
+    :return: Spark dataframe
+    """
+    return spark_session \
+        .read \
+        .options(**kwargs) \
+        .format(socket.data_format) \
+        .load(socket.data_path)

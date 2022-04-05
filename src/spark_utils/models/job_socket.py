@@ -40,3 +40,11 @@ class JobSocket:
     alias: str
     data_path: str
     data_format: str
+
+    def serialize(self, separator: str = '|') -> str:
+        """Serializes job socket to the format used by SparkJobArgs when reading from command line.
+
+        Attributes:
+            separator: Separator to use for serialization
+        """
+        return separator.join([self.alias, self.data_path, self.data_format])
