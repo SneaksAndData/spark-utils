@@ -63,8 +63,8 @@ jobs:
         run: |
           set -e
                   
-          poetry config repositories.test-pypi https://test.pypi.org/legacy/
-          poetry config pypi-token.test-pypi $PYPI_TEST_TOKEN
+          /github/home/.local/bin/poetry config repositories.test-pypi https://test.pypi.org/legacy/
+          /github/home/.local/bin/poetry config pypi-token.test-pypi $PYPI_TEST_TOKEN
 
       - name: Publish distribution 📦 to test PyPI
         env:
@@ -72,11 +72,11 @@ jobs:
         run: |
           set -e
                   
-          poetry build && poetry publish -r test-pypi
+          /github/home/.local/bin/poetry build && /github/home/.local/bin/poetry publish -r test-pypi
 
       - name: Publish distribution 📦 to PyPI
         if: ${{ startsWith(github.ref, 'refs/tags') }}
         run: |
           set -e
           
-          poetry build && poetry publish
+          /github/home/.local/bin/poetry build && /github/home/.local/bin/poetry publish

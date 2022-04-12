@@ -28,7 +28,7 @@ jobs:
         run: |
           set -e
           
-          poetry install
+          /github/home/.local/bin/poetry install
       - name: Lint
         run: |
           set -e
@@ -36,7 +36,7 @@ jobs:
           pypath=$(pwd)
           export PYTHONPATH="$pypath:$PYTHONPATH"
 
-          find ./spark_utils -type f -name "*.py" | xargs poetry run pylint
+          find ./spark_utils -type f -name "*.py" | xargs /github/home/.local/bin/poetry run pylint
       - name: Unit test
         run: |
           set -e
@@ -44,7 +44,7 @@ jobs:
           pypath=$(pwd)
           export PYTHONPATH="$pypath:$PYTHONPATH"
 
-          poetry run pytest ./tests --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=term-missing:skip-covered | tee pytest-coverage.txt
+          /github/home/.local/bin/poetry run pytest ./tests --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=term-missing:skip-covered | tee pytest-coverage.txt
       - name: Publish Code Coverage
         uses: MishaKav/pytest-coverage-comment@main
         with:
