@@ -241,6 +241,7 @@ def copy_dataframe_to_socket(spark_session: SparkSession,
     source_df \
         .write \
         .format(copy_options.dest.data_format) \
+        .options(**copy_options.write_options) \
         .save(path=copy_options.dest.data_path, mode='errorifexists' if copy_options.clean_destination else 'append')
 
     return copy_stats

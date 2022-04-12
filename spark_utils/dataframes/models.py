@@ -38,6 +38,7 @@ class CopyDataOptions:
     :arg src: Source job socket
     :arg dest: Destination job socket
     :arg read_options: Spark session options to set when reading
+    :arg write_options: Spark session options to set when writing
     :arg include_filename: Adds "filename" column to the destination output.
     :arg include_row_sequence: Adds "sequence_number" column to the destination output.
     :arg clean_destination: Wipe destination path before starting a copy.
@@ -51,6 +52,7 @@ class CopyDataOptions:
     clean_destination: bool = False
     clean_column_names: bool = False
     read_options: Optional[dict] = None
+    write_options: Optional[dict] = None
     output_file_count: Optional[int] = None
     timestamp_column: Optional[str] = None
     timestamp_column_format: Optional[str] = None
