@@ -1,4 +1,0 @@
-hadoop-fs-wrapper==0.4.6
-pandas==1.4.0
-delta-spark==1.1.0
-opencensus-ext-azure==1.1.1

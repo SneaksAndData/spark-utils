@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "spark-utils"
+version = "0.0.0"
+description = "Utility classes for comfy Spark job authoriing."
+authors = ["ECCO Sneaks & Data <esdsupport@ecco.com>"]
+maintainers = ['GZU <gzu@ecco.com>', 'JRB <ext-jrb@ecco.com>']
+license = 'MIT'
+readme = "README.md"
+repository = 'https://github.com/SneaksAndData/spark-utils'
+
+[tool.poetry.dependencies]
+python = "^3.8"
+hadoop-fs-wrapper = "~0.4.5"
+cryptography = "~36.0"
+pandas = "~1.4"
+delta-spark = "~1.1"
+opencensus-ext-azure = "~1.1"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.0"
+pytest-cov = "^2.12"
+pylint = "^2.12"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

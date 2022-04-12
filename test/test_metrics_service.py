@@ -1,6 +1,6 @@
 import time
 
-from spark_utils.metrics.azmon_metrics import MetricsService, Sum
+from spark_utils.metrics import MetricsService, Sum
 
 
 def test_track_metric():
