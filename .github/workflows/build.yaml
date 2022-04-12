@@ -44,7 +44,7 @@ jobs:
           pypath=$(pwd)
           export PYTHONPATH="$pypath:$PYTHONPATH"
 
-          /github/home/.local/bin/poetry run pytest ./tests --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=term-missing:skip-covered | tee pytest-coverage.txt
+          /github/home/.local/bin/poetry run pytest ./test --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=term-missing:skip-covered | tee pytest-coverage.txt
       - name: Publish Code Coverage
         uses: MishaKav/pytest-coverage-comment@main
         with:
