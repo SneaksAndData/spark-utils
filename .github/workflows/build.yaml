@@ -10,6 +10,8 @@ jobs:
   validate_code:
     name: Validate code in spark container
     runs-on: ubuntu-latest
+    if: ${{ github.ref != 'refs/heads/main' }}
+
     container:
       image: esdcrproduction.azurecr.io/spark:v1.3.2-bitnami-3.2.0-python-3.9.7-0
       credentials:
