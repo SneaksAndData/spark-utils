@@ -6,9 +6,11 @@ Core features:
 - Spark job argument wrappers, allowing to specify job inputs for `spark.read.format(...).options(...).load(...)` and outputs for `spark.write.format(...).save(...)` in a generic way. Those are exposed as `source` and `target` built-in arguments (see example below).
 
 Consider a simple Spark Job that reads `json` data from `source` and stores it as `parquet` in `target`. This job can be defined using `spark-utils` as below:
+
 ```python
 from spark_utils.common.spark_job_args import SparkJobArgs
 from spark_utils.common.spark_session_provider import SparkSessionProvider
+
 
 def main(args=None):
     """
@@ -16,7 +18,7 @@ def main(args=None):
     :param args:
     :return:
     """
-    spark_args = SparkJobArgs() \
+    spark_args = SparkJobArgs()
         .parse(args)
 
     source_table = spark_args.source('json_source')
@@ -43,16 +45,17 @@ import json
 from spark_utils.common.spark_job_args import SparkJobArgs
 from spark_utils.common.spark_session_provider import SparkSessionProvider
 
+
 def main(args=None):
-    spark_args = SparkJobArgs() \
+    spark_args = SparkJobArgs()
         .new_encrypted_arg("--custom-config", type=str, default=None,
-                           help="Optional spark configuration flags to pass. Will be treated as an encrypted value.") \
+                           help="Optional spark configuration flags to pass. Will be treated as an encrypted value.")
         .parse(args)
-    
+
     spark_session = SparkSessionProvider(
         additional_configs=json.loads(
             spark_args.parsed_args.custom_config) if spark_args.parsed_args.custom_config else None).get_session()
-    
+
     ...
 ```
 

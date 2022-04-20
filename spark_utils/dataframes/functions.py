@@ -186,6 +186,9 @@ def copy_dataframe_to_socket(spark_session: SparkSession,
 
     print(f"Running data copy using options: {copy_options}")
 
+    copy_options.read_options = copy_options.read_options or {}
+    copy_options.write_options = copy_options.write_options or {}
+
     if copy_options.timestamp_column:
         assert copy_options.timestamp_column_format, \
             'When specifying timestamp_column, you must provide timestamp_column_format as well.'
@@ -241,6 +244,7 @@ def copy_dataframe_to_socket(spark_session: SparkSession,
     source_df \
         .write \
         .format(copy_options.dest.data_format) \
+        .options(**copy_options.write_options) \
         .save(path=copy_options.dest.data_path, mode='errorifexists' if copy_options.clean_destination else 'append')
 
     return copy_stats

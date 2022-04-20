@@ -19,92 +19,34 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Prepare venv
+      - name: Install Poetry
         run: |
           set -e
           
-          python -m virtualenv venv
-          . venv/bin/activate
-          pip install -r ./requirements.txt
-          pip install -r ./requirements-dev.txt
+          curl -sSL https://install.python-poetry.org | python3 - --preview
+      - name: Install Dependencies
+        run: |
+          set -e
+          
+          /github/home/.local/bin/poetry install
       - name: Lint
         run: |
           set -e
-          
+
           pypath=$(pwd)
-          export PYTHONPATH="$pypath/src:$PYTHONPATH"
-          
-          . venv/bin/activate
-          find ./src/spark_utils -type f -name "*.py" | xargs pylint
+          export PYTHONPATH="$pypath:$PYTHONPATH"
+
+          find ./spark_utils -type f -name "*.py" | xargs /github/home/.local/bin/poetry run pylint
       - name: Unit test
         run: |
           set -e
-          
+
           pypath=$(pwd)
-          export PYTHONPATH="$pypath/src:$PYTHONPATH"
-          
-          . venv/bin/activate
-          pytest ./test
+          export PYTHONPATH="$pypath:$PYTHONPATH"
 
-  create_release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    needs: [ validate_code ]
-    if: ${{ github.ref == 'refs/heads/main' }}
-
-    steps:
-      - uses: actions/checkout@v2
-      - run: git fetch --prune --unshallow
-      - name: Create Release
-        env:
-          MAJOR_V: "0"
-          MINOR_V: "5"
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          set -e
-          providedMajor=$MAJOR_V
-          providedMinor=$MINOR_V
-          currentVersion=$(git describe --tags --abbrev=7)
-          currentMinor=$(echo $currentVersion | cut -d. -f2)
-          currentMajor=$(echo $currentVersion | cut -d. -f1 | cut -dv -f2)
-          if [[ $currentMajor -eq $providedMajor ]] && [[ $providedMinor -eq $currentMinor ]];
-          then
-            currentRevision=$(echo $(echo $currentVersion | rev | cut -d. -f1) | rev | cut -d- -f1)
-            nextRevision=$(( currentRevision + 1 ))
-          else
-            nextRevision='0'
-          fi
-          nextVersion="v$providedMajor.$providedMinor.$nextRevision"
-          gh release create $nextVersion --generate-notes
-
-  release_to_pypi_test:
-    name: Release distribution to test.pypi.org
-    runs-on: ubuntu-latest
-    needs: [ create_release ]
-
-    steps:
-      - uses: actions/checkout@v2
-      - run: git fetch --prune --unshallow
-      - uses: actions/setup-python@v2
+          /github/home/.local/bin/poetry run pytest ./test --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=term-missing:skip-covered | tee pytest-coverage.txt
+      - name: Publish Code Coverage
+        uses: MishaKav/pytest-coverage-comment@main
         with:
-          python-version: '3.8.x'
-      - name: Build wheel
-        run: |
-          set -e
-          
-          version=$(git describe --tags --abbrev=7)
-          
-          pip install virtualenv
-          python -m virtualenv venv
-          
-          . venv/bin/activate
-          pip install --upgrade twine build
-          
-          echo "__version__ = '$version'" > ./src/spark_utils/_version.py
-          
-          python -m build --sdist --wheel
-      - name: Publish distribution 📦 to Test PyPI
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          password: ${{ secrets.PYPI_TEST_API_TOKEN }}
-          repository_url: https://test.pypi.org/legacy/
+          pytest-coverage-path: ./pytest-coverage.txt
+          junitxml-path: ./junit/test-results.xml
