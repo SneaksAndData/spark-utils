@@ -35,6 +35,7 @@ jobs:
           poetry config pypi-token.test-pypi $PYPI_TEST_TOKEN
 
       - name: Publish distribution 📦 to test PyPI
+        if: ${{ github.ref == 'refs/heads/main' }}
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_TOKEN }}
         run: |
