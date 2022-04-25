@@ -17,7 +17,7 @@ delta-spark = "~1.1"
 opencensus-ext-azure = "~1.1"
 
 [tool.poetry.dev-dependencies]
-pytest = "^7.0"
+pytest = "^7.1"
 pytest-cov = "^2.12"
 pylint = "^2.12"
 
