@@ -24,6 +24,7 @@
   Provides convenient building of a Spark Session
 """
 import os
+import tempfile
 from typing import Optional, List, Dict
 
 from pyspark.sql import SparkSession
@@ -57,7 +58,7 @@ class SparkSessionProvider:
             .config("spark.jars.packages", ",".join(packages)) \
             .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
             .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
-            .config("spark.jars.ivy", "/tmp/.ivy2") \
+            .config("spark.jars.ivy", os.path.join(tempfile.gettempdir(), ".ivy2")) \
             .config("spark.sql.legacy.parquet.datetimeRebaseModeInWrite", "CORRECTED") \
             .config("spark.sql.legacy.parquet.int96RebaseModeInWrite", "CORRECTED")
 
