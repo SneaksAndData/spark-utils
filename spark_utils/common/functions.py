@@ -50,7 +50,7 @@ def decrypt_sensitive(sensitive_content: Optional[str]) -> Optional[str]:
     :param sensitive_content: payload to decrypt
     :return: Decrypted payload
     """
-    encryption_key = os.environ.get('RUNTIME_ENCRYPTION_KEY', None).encode('utf-8')
+    encryption_key = os.environ.get('RUNTIME_ENCRYPTION_KEY', '').encode('utf-8')
 
     if not encryption_key:
         print('Encryption key not set - skipping operation.')
