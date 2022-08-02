@@ -59,7 +59,6 @@ def main(args=None):
     ...
 ```
 
-- Metrics reporting via Opencensus library. Note that metrics API might change in the future.
 - Delta Lake utilities
   - Table publishing to Hive Metastore.
   - Delta OSS compaction with row count / file optimization target.
