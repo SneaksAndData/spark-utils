@@ -18,7 +18,7 @@ jobs:
       - name: Create package
         uses: SneaksAndData/github-actions/create_package@add_create_package_action
         with:
-          pypi_repo_url: ${{ secrets.AZOPS_PYPI_UPLOAD }}
-          pypi_token_username: ${{ secrets.AZOPS_PAT_USER }}
-          pypi_token: ${{ secrets.AZOPS_PAT }}
+          pypi_repo_url: https://test.pypi.org/legacy/
+          pypi_token_username: __token__
+          pypi_token: ${{ secrets.PYPI_TEST_API_TOKEN }}
           package_name: spark_utils
