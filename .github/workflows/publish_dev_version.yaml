@@ -13,7 +13,7 @@ jobs:
         uses: SneaksAndData/github-actions/install_poetry@v0.0.3
         with:
           pypi_repo_url: https://test.pypi.org/legacy/
-          pypi_token_username: ${{ secrets.PYPI_TEST_API_TOKEN }}
+          pypi_token_username: __token__
           pypi_token: ${{ secrets.PYPI_TEST_API_TOKEN }}
       - name: Create package
         uses: SneaksAndData/github-actions/create_package@add_create_package_action
