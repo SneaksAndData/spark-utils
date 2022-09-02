@@ -13,7 +13,7 @@ jobs:
     if: ${{ github.ref != 'refs/heads/main' }}
 
     container:
-      image: esdcrproduction.azurecr.io/spark:v1.3.2-bitnami-3.2.0-python-3.9.7-0
+      image: esdcrproduction.azurecr.io/spark:v3.0.2-bitnami-3.3.0-python-3.9.13
       credentials:
         username: ${{ secrets.AZCR_PROD_USER }}
         password: ${{ secrets.AZCR_PROD_TOKEN }}
@@ -25,7 +25,7 @@ jobs:
         run: |
           set -e
           
-          curl -sSL https://install.python-poetry.org | python3 - --preview
+          curl -sSL https://install.python-poetry.org | python3 -
       - name: Install Dependencies
         run: |
           set -e
@@ -35,16 +35,10 @@ jobs:
         run: |
           set -e
 
-          pypath=$(pwd)
-          export PYTHONPATH="$pypath:$PYTHONPATH"
-
           find ./spark_utils -type f -name "*.py" | xargs /github/home/.local/bin/poetry run pylint
       - name: Unit test
         run: |
-          set -e
-
-          pypath=$(pwd)
-          export PYTHONPATH="$pypath:$PYTHONPATH"
+          set -euxo pipefail
 
           /github/home/.local/bin/poetry run pytest ./test --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=term-missing:skip-covered | tee pytest-coverage.txt
       - name: Publish Code Coverage

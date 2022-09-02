@@ -1,3 +1,5 @@
+name: Publish a development version
+
 on: issue_comment
 
 jobs:
