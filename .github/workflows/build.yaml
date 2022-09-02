@@ -37,6 +37,7 @@ jobs:
 
           find ./spark_utils -type f -name "*.py" | xargs /github/home/.local/bin/poetry run pylint
       - name: Unit test
+        shell: bash
         run: |
           set -euxo pipefail
 
