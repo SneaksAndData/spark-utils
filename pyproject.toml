@@ -15,7 +15,7 @@ cryptography = "~36.0"
 delta-spark = "~2.1"
 
 [tool.poetry.dev-dependencies]
-pytest = "^7.0"
+pytest = "^7.1"
 pytest-cov = "^2.12"
 pylint = "^2.12"
 
