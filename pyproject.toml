@@ -16,7 +16,7 @@ delta-spark = "~2.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0"
-pytest-cov = "^2.12"
+pytest-cov = "^3.0"
 pylint = "^2.12"
 
 [build-system]
