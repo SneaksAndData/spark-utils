@@ -19,10 +19,11 @@ class DeltaLog:
     def for_table(cls, spark_session: SparkSession, data_path: str) -> 'DeltaLog':
         """
          Wraps constructor: def forTable(spark: SparkSession, dataPath: String): DeltaLog
-         /** Helper for creating a log when it stored at the root of the data. */
+
+         Helper for creating a log when it stored at the root of the data
 
         :param data_path: Path to delta table.
-        :return: BufferedOutputStream
+        :return: DeltaLog.
         """
         return cls(
             spark_session._jvm.org.apache.spark.sql.delta.DeltaLog.forTable(spark_session._jsparkSession, data_path))
@@ -30,7 +31,7 @@ class DeltaLog:
     @staticmethod
     def invalidate_cache(spark_session: SparkSession, data_path: str) -> None:
         """
-          Invalidate the cached DeltaLog object for the given `dataPath`
+          Invalidate the cached DeltaLog object for the given data_path.
         """
 
         spark_session._jvm.org.apache.spark.sql.delta.DeltaLog.invalidateCache(spark_session._jsparkSession, data_path)
@@ -42,7 +43,7 @@ class DeltaLog:
         """
         spark_session._jvm.org.apache.spark.sql.delta.DeltaLog.clearCache()
 
-    def table_id(self):
+    def table_id(self) -> str:
         """
           The unique identifier for this table.
         """
