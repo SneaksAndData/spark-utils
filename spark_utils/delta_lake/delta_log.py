@@ -4,6 +4,7 @@
 from pyspark.sql import SparkSession
 
 
+# pylint: disable=W0212
 class DeltaLog:
     """
      Wrapper for org.apache.spark.sql.delta.DeltaLog
