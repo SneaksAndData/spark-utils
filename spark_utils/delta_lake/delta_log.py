@@ -2,6 +2,7 @@
   Wrapper for DeltaLog class.
 """
 from pyspark.sql import SparkSession
+from hadoop_fs_wrapper.models.hadoop_fs_path import HadoopFsPath
 
 
 # pylint: disable=W0212
@@ -35,7 +36,10 @@ class DeltaLog:
           Invalidate the cached DeltaLog object for the given data_path.
         """
 
-        spark_session._jvm.org.apache.spark.sql.delta.DeltaLog.invalidateCache(spark_session._jsparkSession, data_path)
+        hadoop_path = HadoopFsPath.from_string(spark_session._jvm, data_path)
+
+        spark_session._jvm.org.apache.spark.sql.delta.DeltaLog.invalidateCache(spark_session._jsparkSession,
+                                                                               hadoop_path.underlying)
 
     @staticmethod
     def clear_cache(spark_session: SparkSession):
