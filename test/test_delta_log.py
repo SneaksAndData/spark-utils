@@ -21,7 +21,7 @@ def test_cache_clear(spark_session: SparkSession, test_base_path: str):
     _ = DeltaLog.for_table(spark_session, f'file:///{test_base_path}/delta_log/table2')
     cached_read = time.monotonic_ns() - start
 
-    DeltaLog.clear_cache(spark_session)
+    DeltaLog.invalidate_cache(spark_session, f'file:///{test_base_path}/delta_log/table2')
 
     start = time.monotonic_ns()
     _ = DeltaLog.for_table(spark_session, f'file:///{test_base_path}/delta_log/table2')
