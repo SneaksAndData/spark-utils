@@ -10,9 +10,9 @@ repository = 'https://github.com/SneaksAndData/spark-utils'
 
 [tool.poetry.dependencies]
 python = "^3.9"
-hadoop-fs-wrapper = "~0.5"
+hadoop-fs-wrapper = "~0.5.2"
 cryptography = "~36.0"
-delta-spark = "~2.1"
+delta-spark = "~2.1.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0"
