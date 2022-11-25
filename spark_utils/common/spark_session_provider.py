@@ -23,10 +23,19 @@
 """
   Provides convenient building of a Spark Session
 """
+import json
 import os
 import tempfile
+import uuid
 from typing import Optional, List, Dict
 
+import pyspark.sql.session
+try:
+    from kubernetes.client import V1Pod, V1ObjectMeta, V1PodSpec, V1Container, V1ContainerPort, V1EnvVar, \
+        V1ResourceRequirements, V1PodSecurityContext, V1NodeAffinity, V1NodeSelector, V1NodeSelectorTerm, \
+        V1NodeSelectorRequirement, V1Toleration
+except ModuleNotFoundError:
+    pass
 from pyspark.sql import SparkSession
 
 from spark_utils.models.hive_metastore_config import HiveMetastoreConfig
@@ -42,11 +51,11 @@ class SparkSessionProvider:
                  additional_configs: Optional[Dict[str, str]] = None,
                  run_local=False):
         """
-        :param delta_lake_version: Delta lake package version
-        :param hive_metastore_config: Optional configuration of a hive metastore that should be connected to this Spark Session
+        :param delta_lake_version: Delta lake package version.
+        :param hive_metastore_config: Optional configuration of a hive metastore that should be connected to this Spark Session.
         :param additional_packages: Additional jars to download. Would not override jars installed or provided from spark-submit.
-         This setting only works if a session is started from python and not spark-submit
-        :param additional_configs: Any additional spark configurations
+         This setting only works if a session is started from python and not spark-submit.
+        :param additional_configs: Any additional spark configurations.
         :param run_local: Whether single-node local master should be used.
         """
 
@@ -87,15 +96,134 @@ class SparkSessionProvider:
             for config_key, config_value in additional_configs.items():
                 self._spark_session_builder = self._spark_session_builder.config(config_key, config_value)
 
-        if os.environ.get('PYTEST_CURRENT_TEST') or run_local:
-            self._spark_session = self._spark_session_builder.master('local[*]').getOrCreate()
-        else:
-            self._spark_session = self._spark_session_builder.getOrCreate()
+        self._run_local = run_local
+
+    @property
+    def session_builder(self) -> pyspark.sql.session.SparkSession.Builder:
+        """
+          Return a current session builder object.
+        """
+        return self._spark_session_builder
+
+    def configure_for_k8s(
+            self,
+            master_url: str,
+            application_name: str,
+            k8s_namespace: str,
+            spark_image: str,
+            spark_gid: Optional[str] = '0',
+            spark_uid: Optional[str] = '1001',
+            default_executor_memory: Optional[int] = 2000,
+            driver_name: Optional[str] = None,
+            driver_ip: Optional[str] = None,
+            executor_name_prefix: Optional[str] = None,
+            executor_node_affinity: Optional[Dict[str, str]] = None,
+            master_port: int = 443
+    ) -> 'SparkSessionProvider':
+        """
+         Configures spark session for using Kubernetes as a resource manager.
+
+         :param master_url: Kubernetes API URL, i.e. https://my-server-api.mydomain.com.
+         :param application_name: Spark Application name for this session.
+         :param k8s_namespace: Kubernetes namespace where to launch executors.
+         :param spark_image: Image to use for executors.
+         :param spark_gid: Group for the Spark UID.
+         :param spark_uid: Spark UID.
+         :param default_executor_memory: Default memory to assign to executors if
+           spark.executor.memory is not provided.
+         :param driver_name: Name of a driver host.
+         :param driver_ip: IP address of a driver host.
+         :param executor_name_prefix: Prefix to use when naming executors.
+         :param executor_node_affinity: Default node affinity for all executors.
+         :param master_port: Connection port for the API server.
+        """
+        executor_name = executor_name_prefix or str(uuid.uuid4())
+        # base configuration
+        self._spark_session_builder = self._spark_session_builder \
+            .master(f"k8s:/{master_url}:{master_port}") \
+            .config("spark.kubernetes.driver.pod.name", driver_name or os.getenv('SPARK_DRIVER_NAME')) \
+            .config("spark.app.name", application_name) \
+            .config("spark.kubernetes.executor.podNamePrefix", executor_name) \
+            .config('spark.kubernetes.executor.limit.cores', 1) \
+            .config('spark.driver.host', driver_ip or os.getenv('SPARK_DRIVER_IP'))
+
+        # generate executor template
+        executor_template = V1Pod(
+            metadata=V1ObjectMeta(name='spark-executor', namespace=k8s_namespace),
+            spec=V1PodSpec(
+                containers=[
+                    V1Container(
+                        name='spark-executor',
+                        image=spark_image,
+                        ports=[
+                            V1ContainerPort(
+                                name='http',
+                                container_port=8080,
+                                protocol='TCP'
+                            )
+                        ],
+                        env=[
+                            V1EnvVar(
+                                name='SPARK_WORKER_WEBUI_PORT',
+                                value='8080'
+                            )
+                        ],
+                        resources=V1ResourceRequirements(
+                            limits={
+                                'cpu': 1,
+                                'memory': f'{default_executor_memory}Mi'
+                            },
+                            requests={
+                                'cpu': 1,
+                                'memory': f'{default_executor_memory}Mi'
+                            }
+                        )
+                    )
+                ],
+                restart_policy='Never',
+                security_context=V1PodSecurityContext(
+                    run_as_user=spark_uid,
+                    run_as_group=spark_gid
+                ),
+                affinity=V1NodeAffinity(
+                    required_during_scheduling_ignored_during_execution=V1NodeSelector(
+                        node_selector_terms=[
+                            V1NodeSelectorTerm(match_expressions=[
+                                V1NodeSelectorRequirement(
+                                    key=affinity_key,
+                                    values=[affinity_value], operator='In')
+                            ] for affinity_key, affinity_value in executor_node_affinity.items())
+                        ]
+                    )
+                ) if executor_node_affinity else None,
+                tolerations=[
+                    V1Toleration(
+                        effect='NoSchedule',
+                        key=affinity_key,
+                        operator='Equal',
+                        value=affinity_value
+                    ) for affinity_key, affinity_value in executor_node_affinity.items()
+                ] if executor_node_affinity else None
+            )
+        )
+
+        template_path = os.path.join(tempfile.gettempdir(), executor_name, "_template.yml")
+
+        with open(template_path, 'w', encoding='utf-8') as tf:
+            tf.write(json.dumps(executor_template))
+
+        self._spark_session_builder = self._spark_session_builder\
+            .config("spark.kubernetes.executor.podTemplateFile", template_path)
+
+        return self
 
     def get_session(self):
         """
-          Get a configured Spark Session
+          Launch a configured Spark Session.
 
         :return: SparkSession
         """
-        return self._spark_session
+        if os.environ.get('PYTEST_CURRENT_TEST') or self._run_local:
+            return self._spark_session_builder.master('local[*]').getOrCreate()
+
+        return self._spark_session_builder.getOrCreate()
