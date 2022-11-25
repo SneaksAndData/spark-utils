@@ -191,8 +191,9 @@ class SparkSessionProvider:
                             V1NodeSelectorTerm(match_expressions=[
                                 V1NodeSelectorRequirement(
                                     key=affinity_key,
-                                    values=[affinity_value], operator='In')
-                            ] for affinity_key, affinity_value in executor_node_affinity.items())
+                                    values=[affinity_value], operator='In'
+                                ) for affinity_key, affinity_value in executor_node_affinity.items()
+                            ])
                         ]
                     )
                 ) if executor_node_affinity else None,
