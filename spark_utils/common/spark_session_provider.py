@@ -29,10 +29,6 @@ import tempfile
 import uuid
 from typing import Optional, List, Dict
 
-import pyspark.sql.session
-
-from spark_utils.models.k8s_config import SparkKubernetesConfig
-
 try:
     from kubernetes.client import V1Pod, V1ObjectMeta, V1PodSpec, V1Container, V1ContainerPort, V1EnvVar, \
         V1ResourceRequirements, V1PodSecurityContext, V1NodeAffinity, V1NodeSelector, V1NodeSelectorTerm, \
@@ -41,6 +37,7 @@ except ModuleNotFoundError:
     pass
 from pyspark.sql import SparkSession
 
+from spark_utils.models.k8s_config import SparkKubernetesConfig
 from spark_utils.models.hive_metastore_config import HiveMetastoreConfig
 
 
