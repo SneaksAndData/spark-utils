@@ -35,6 +35,7 @@ try:
         V1NodeSelectorRequirement, V1Toleration
 except ModuleNotFoundError:
     pass
+import pyspark
 from pyspark.sql import SparkSession
 
 from spark_utils.models.k8s_config import SparkKubernetesConfig
