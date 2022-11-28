@@ -30,6 +30,9 @@ import uuid
 from typing import Optional, List, Dict
 
 import pyspark.sql.session
+
+from spark_utils.models.k8s_config import SparkKubernetesConfig
+
 try:
     from kubernetes.client import V1Pod, V1ObjectMeta, V1PodSpec, V1Container, V1ContainerPort, V1EnvVar, \
         V1ResourceRequirements, V1PodSecurityContext, V1NodeAffinity, V1NodeSelector, V1NodeSelectorTerm, \
@@ -108,53 +111,34 @@ class SparkSessionProvider:
     def configure_for_k8s(
             self,
             master_url: str,
-            application_name: str,
-            k8s_namespace: str,
-            spark_image: str,
-            spark_gid: Optional[str] = '0',
-            spark_uid: Optional[str] = '1001',
-            default_executor_memory: Optional[int] = 2000,
-            driver_name: Optional[str] = None,
-            driver_ip: Optional[str] = None,
-            executor_name_prefix: Optional[str] = None,
-            executor_node_affinity: Optional[Dict[str, str]] = None,
+            spark_config: SparkKubernetesConfig,
             master_port: int = 443
     ) -> 'SparkSessionProvider':
         """
          Configures spark session for using Kubernetes as a resource manager.
 
          :param master_url: Kubernetes API URL, i.e. https://my-server-api.mydomain.com.
-         :param application_name: Spark Application name for this session.
-         :param k8s_namespace: Kubernetes namespace where to launch executors.
-         :param spark_image: Image to use for executors.
-         :param spark_gid: Group for the Spark UID.
-         :param spark_uid: Spark UID.
-         :param default_executor_memory: Default memory to assign to executors if
-           spark.executor.memory is not provided.
-         :param driver_name: Name of a driver host.
-         :param driver_ip: IP address of a driver host.
-         :param executor_name_prefix: Prefix to use when naming executors.
-         :param executor_node_affinity: Default node affinity for all executors.
+         :param spark_config: Spark on K8S-specific configurations.
          :param master_port: Connection port for the API server.
         """
-        executor_name = executor_name_prefix or str(uuid.uuid4())
+        executor_name = spark_config.executor_name_prefix or str(uuid.uuid4())
         # base configuration
         self._spark_session_builder = self._spark_session_builder \
             .master(f"k8s:/{master_url}:{master_port}") \
-            .config("spark.kubernetes.driver.pod.name", driver_name or os.getenv('SPARK_DRIVER_NAME')) \
-            .config("spark.app.name", application_name) \
+            .config("spark.kubernetes.driver.pod.name", spark_config.driver_name or os.getenv('SPARK_DRIVER_NAME')) \
+            .config("spark.app.name", spark_config.application_name) \
             .config("spark.kubernetes.executor.podNamePrefix", executor_name) \
             .config('spark.kubernetes.executor.limit.cores', 1) \
-            .config('spark.driver.host', driver_ip or os.getenv('SPARK_DRIVER_IP'))
+            .config('spark.driver.host', spark_config.driver_ip or os.getenv('SPARK_DRIVER_IP'))
 
         # generate executor template
         executor_template = V1Pod(
-            metadata=V1ObjectMeta(name='spark-executor', namespace=k8s_namespace),
+            metadata=V1ObjectMeta(name='spark-executor', namespace=spark_config.k8s_namespace),
             spec=V1PodSpec(
                 containers=[
                     V1Container(
                         name='spark-executor',
-                        image=spark_image,
+                        image=spark_config.spark_image,
                         ports=[
                             V1ContainerPort(
                                 name='http',
@@ -171,19 +155,19 @@ class SparkSessionProvider:
                         resources=V1ResourceRequirements(
                             limits={
                                 'cpu': 1,
-                                'memory': f'{default_executor_memory}Mi'
+                                'memory': f'{spark_config.default_executor_memory}Mi'
                             },
                             requests={
                                 'cpu': 1,
-                                'memory': f'{default_executor_memory}Mi'
+                                'memory': f'{spark_config.default_executor_memory}Mi'
                             }
                         )
                     )
                 ],
                 restart_policy='Never',
                 security_context=V1PodSecurityContext(
-                    run_as_user=spark_uid,
-                    run_as_group=spark_gid
+                    run_as_user=spark_config.spark_uid,
+                    run_as_group=spark_config.spark_gid
                 ),
                 affinity=V1NodeAffinity(
                     required_during_scheduling_ignored_during_execution=V1NodeSelector(
@@ -192,28 +176,28 @@ class SparkSessionProvider:
                                 V1NodeSelectorRequirement(
                                     key=affinity_key,
                                     values=[affinity_value], operator='In'
-                                ) for affinity_key, affinity_value in executor_node_affinity.items()
+                                ) for affinity_key, affinity_value in spark_config.executor_node_affinity.items()
                             ])
                         ]
                     )
-                ) if executor_node_affinity else None,
+                ) if spark_config.executor_node_affinity else None,
                 tolerations=[
                     V1Toleration(
                         effect='NoSchedule',
                         key=affinity_key,
                         operator='Equal',
                         value=affinity_value
-                    ) for affinity_key, affinity_value in executor_node_affinity.items()
-                ] if executor_node_affinity else None
+                    ) for affinity_key, affinity_value in spark_config.executor_node_affinity.items()
+                ] if spark_config.executor_node_affinity else None
             )
         )
 
         template_path = os.path.join(tempfile.gettempdir(), executor_name, "_template.yml")
 
-        with open(template_path, 'w', encoding='utf-8') as tf:
-            tf.write(json.dumps(executor_template))
+        with open(template_path, 'w', encoding='utf-8') as pod_template:
+            pod_template.write(json.dumps(executor_template))
 
-        self._spark_session_builder = self._spark_session_builder\
+        self._spark_session_builder = self._spark_session_builder \
             .config("spark.kubernetes.executor.podTemplateFile", template_path)
 
         return self
