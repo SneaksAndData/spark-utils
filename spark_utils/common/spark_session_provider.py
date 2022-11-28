@@ -124,15 +124,20 @@ class SparkSessionProvider:
         executor_name = spark_config.executor_name_prefix or str(uuid.uuid4())
         # base configuration
         self._spark_session_builder = self._spark_session_builder \
-            .master(f"k8s:/{master_url}:{master_port}") \
+            .master(f"k8s://{master_url}:{master_port}") \
             .config("spark.kubernetes.driver.pod.name", spark_config.driver_name or os.getenv('SPARK_DRIVER_NAME')) \
             .config("spark.app.name", spark_config.application_name) \
             .config("spark.kubernetes.executor.podNamePrefix", executor_name) \
             .config('spark.kubernetes.executor.limit.cores', 1) \
-            .config('spark.driver.host', spark_config.driver_ip or os.getenv('SPARK_DRIVER_IP'))
+            .config('spark.driver.host', spark_config.driver_ip or os.getenv('SPARK_DRIVER_IP')) \
+            .config('spark.kubernetes.namespace', spark_config.k8s_namespace) \
+            .config('spark.kubernetes.container.image', spark_config.spark_image) \
+            .config('spark.shuffle.service.enabled', 'false')  # disable external shuffle service for now
 
         # generate executor template
         executor_template = V1Pod(
+            api_version='v1',
+            kind='Pod',
             metadata=V1ObjectMeta(name='spark-executor', namespace=spark_config.k8s_namespace),
             spec=V1PodSpec(
                 containers=[
@@ -192,13 +197,14 @@ class SparkSessionProvider:
             )
         )
 
-        template_path = os.path.join(tempfile.gettempdir(), executor_name, "_template.yml")
+        template_path = os.path.join(tempfile.gettempdir(), executor_name)
+        os.makedirs(template_path, exist_ok=True)
 
-        with open(template_path, 'w', encoding='utf-8') as pod_template:
-            pod_template.write(json.dumps(executor_template))
+        with open(os.path.join(template_path, "template.yml"), 'w', encoding='utf-8') as pod_template:
+            pod_template.write(json.dumps(executor_template.to_dict()))
 
         self._spark_session_builder = self._spark_session_builder \
-            .config("spark.kubernetes.executor.podTemplateFile", template_path)
+            .config("spark.kubernetes.executor.podTemplateFile", os.path.join(template_path, "template.yml"))
 
         return self
 
