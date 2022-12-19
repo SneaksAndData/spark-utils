@@ -24,7 +24,7 @@ k8s = [
 [tool.poetry.dev-dependencies]
 pytest = "^7.0"
 pytest-cov = "^2.12"
-pylint = "^2.12"
+pylint = "^2.15"
 
 [build-system]
 requires = ["poetry-core>=1.2.0"]
