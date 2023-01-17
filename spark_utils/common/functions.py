@@ -24,7 +24,7 @@
   Common helper functions.
 """
 import os
-from typing import Optional
+from typing import Optional, List
 
 from cryptography.fernet import Fernet
 from pyspark.sql import SparkSession, DataFrame
@@ -70,8 +70,47 @@ def read_from_socket(socket: JobSocket, spark_session: SparkSession, **kwargs) -
     :param kwargs: Keyword arguments passed to spark read options
     :return: Spark dataframe
     """
+    if socket.data_format == 'hive':
+        return spark_session.table(socket.data_path)
+
     return spark_session \
         .read \
         .options(**kwargs) \
         .format(socket.data_format) \
         .load(socket.data_path)
+
+
+def write_to_socket(
+    data: DataFrame,
+    socket: JobSocket,
+    partition_by: List[str] = None,
+    partition_count: int = None,
+    **kwargs
+) -> None:
+    """Writes data to socket
+
+    :param data: Dataframe to write
+    :param socket: Socket to write to
+    :param partition_by: List of column names to partition by
+    :param partition_count: Number of partitions to use
+    :param kwargs: Keyword arguments passed to spark write options
+    """
+    partition_count = partition_count or 200
+    partition_by = partition_by or []
+    writer = data \
+        .repartition(partition_count, *partition_by) \
+        .write \
+        .mode('overwrite') \
+        .options(**kwargs)
+
+    if socket.data_format in ['delta', 'parquet']:
+        writer \
+            .format(socket.data_format) \
+            .save(socket.data_path)
+    elif socket.data_format in ['hive']:
+        writer \
+            .format('delta') \
+            .option("mergeSchema", "true") \
+            .saveAsTable(socket.data_path)
+    else:
+        raise ValueError(f'Output socket data format {socket.data_format} not supported!')
