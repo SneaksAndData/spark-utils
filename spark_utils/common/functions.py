@@ -110,7 +110,6 @@ def write_to_socket(
     elif socket.data_format in ['hive']:
         writer \
             .format('delta') \
-            .option("mergeSchema", "true") \
             .saveAsTable(socket.data_path)
     else:
         raise ValueError(f'Output socket data format {socket.data_format} not supported!')
