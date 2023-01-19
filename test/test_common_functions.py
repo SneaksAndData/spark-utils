@@ -22,7 +22,7 @@ def test_read_from_socket(format_: Format, spark_session: SparkSession, test_bas
         data_path=f'file:///{os.path.join(test_data_path, f"data.{format_.format}")}',
         data_format=format_.format,
     )
-    df = read_from_socket(socket=socket, spark_session=spark_session, **format_.spark_options)
+    df = read_from_socket(socket=socket, spark_session=spark_session, read_options=format_.spark_options)
 
     assert sorted(df.columns) == sorted(['strings', 'ints', 'floats'])
 
