@@ -71,9 +71,11 @@ def read_from_socket(
 
     :param socket: Socket
     :param spark_session: Spark session
-    :param read_options:
+    :param read_options: Read options passed to spark (e.g. Parquet options
+    found here: https://spark.apache.org/docs/latest/sql-data-sources-parquet.html#data-source-option)
     :return: Spark dataframe
     """
+    read_options = read_options or {}
     if socket.data_format.startswith('hive'):
         return spark_session.table(socket.data_path)
 
@@ -100,6 +102,7 @@ def write_to_socket(
     :param write_options: Write options passed to spark (e.g. Parquet options
     found here: https://spark.apache.org/docs/latest/sql-data-sources-parquet.html#data-source-option)
     """
+    write_options = write_options or {}
     if partition_count:
         data = data.repartition(partition_count, *partition_by)
 
@@ -110,13 +113,11 @@ def write_to_socket(
     if partition_by:
         writer = writer.partitionBy(*partition_by)
 
-    if socket.data_format in ['delta', 'parquet']:
-        writer \
-            .format(socket.data_format) \
-            .save(socket.data_path)
-    elif socket.data_format.startswith('hive'):
+    if socket.data_format.startswith('hive'):
         writer \
             .format(socket.data_format.split('_')[-1]) \
             .saveAsTable(socket.data_path)
     else:
-        raise ValueError(f'Output socket data format {socket.data_format} not supported!')
+        writer \
+            .format(socket.data_format) \
+            .save(socket.data_path)
