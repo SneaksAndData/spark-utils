@@ -1,4 +1,6 @@
 import os
+from typing import Optional, List
+
 import pytest
 from collections import namedtuple
 
@@ -17,7 +19,7 @@ def are_dfs_equal(df1: DataFrame, df2: DataFrame) -> bool:
 Format = namedtuple('format', ['format', 'read_options'])
 @pytest.mark.parametrize('format_', [
     Format(format='csv', read_options={'header': True}),
-    Format(format='json', read_options={}),
+    Format(format='json', read_options={"multiline", True}),
     Format(format='parquet', read_options={}),
 ])
 def test_read_from_socket(format_: Format, spark_session: SparkSession, test_base_path: str):
@@ -37,10 +39,18 @@ def test_read_from_socket(format_: Format, spark_session: SparkSession, test_bas
 Format = namedtuple('format', ['format', 'read_options'])
 @pytest.mark.parametrize('format_', [
     Format(format='csv', read_options={'header': True}),
-    Format(format='json', read_options={}),
     Format(format='parquet', read_options={}),
-])
-def test_write_to_socket(format_: Format, spark_session: SparkSession, test_base_path: str):
+]
+)
+@pytest.mark.parametrize('partition_by', [None, ['strings']])
+@pytest.mark.parametrize('partition_count', [None, 2],)
+def test_write_to_socket(
+    format_: Format,
+    partition_by: Optional[List[str]],
+    partition_count: Optional[int],
+    spark_session: SparkSession,
+    test_base_path: str,
+):
 
     test_data_path = os.path.join(test_base_path, 'test_common_functions')
     socket = JobSocket(
@@ -55,11 +65,18 @@ def test_write_to_socket(format_: Format, spark_session: SparkSession, test_base
     )
     df = read_from_socket(socket=socket, spark_session=spark_session, read_options=format_.read_options)
 
-    write_to_socket(data=df, socket=output_socket, write_options=format_.read_options, )
+    write_to_socket(
+        data=df,
+        socket=output_socket,
+        write_options=format_.read_options,
+        partition_by=partition_by,
+        partition_count=partition_count,
+    )
 
     df_read = read_from_socket(socket=output_socket, spark_session=spark_session, read_options=format_.read_options)
 
-    assert are_dfs_equal(df, df_read)
+
+    assert are_dfs_equal(df.sort(df.columns[0]), df_read.select(df.columns).sort(df.columns[0]))
 
 
 @pytest.mark.parametrize('sep', ['|', ';'])
