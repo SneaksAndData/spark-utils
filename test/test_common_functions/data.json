@@ -1,1 +1,17 @@
-{"strings":{"0":"abc","1":"def","2":"ghe"},"ints":{"0":1,"1":2,"2":3},"floats":{"0":1.0,"1":2.0,"2":3.0}}
+[
+  {
+    "strings": "abc",
+    "ints": 1,
+    "floats": 1
+  },
+  {
+    "strings": "def",
+    "ints": 2,
+    "floats": 2
+  },
+  {
+    "strings": "ghe",
+    "ints": 3,
+    "floats": 3
+  }
+]
