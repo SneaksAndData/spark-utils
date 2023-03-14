@@ -33,13 +33,15 @@ from spark_utils.dataframes.functions import get_dataframe_columns, get_datafram
 from spark_utils.models.hive_table import HiveTableColumn
 
 
-def _generate_table_ddl(*,
-                        publish_as_symlink: bool,
-                        publish_schema_name: str,
-                        publish_table_name: str,
-                        column_str: str,
-                        partition_str: str,
-                        location: str) -> str:
+def _generate_table_ddl(
+    *,
+    publish_as_symlink: bool,
+    publish_schema_name: str,
+    publish_table_name: str,
+    column_str: str,
+    partition_str: str,
+    location: str,
+) -> str:
     """
       Generates CREATE ... TABLE  statement for Spark SQL.
 
@@ -68,12 +70,14 @@ def _generate_table_ddl(*,
         """
 
 
-def publish_delta_to_hive(spark_session: SparkSession,
-                          publish_table_name: str,
-                          publish_schema_name: str,
-                          data_path: str,
-                          refresh: bool = False,
-                          publish_as_symlink=True):
+def publish_delta_to_hive(
+    spark_session: SparkSession,
+    publish_table_name: str,
+    publish_schema_name: str,
+    data_path: str,
+    refresh: bool = False,
+    publish_as_symlink=True,
+):
     """
       Generate symlink manifest and create an external table in a Hive Metastore used by a SparkSession provided
 
@@ -100,9 +104,9 @@ def publish_delta_to_hive(spark_session: SparkSession,
 
     (columns, partitions, location) = get_table_info(spark_session, data_path)
 
-    column_str = ','.join(map(lambda t_col: f"{t_col.name} {t_col.type}", columns))
-    partition_str = ','.join(map(lambda t_col: f"{t_col.name} {t_col.type}", partitions))
-    partition_str = '' if not partition_str else f"PARTITIONED BY ({partition_str})"
+    column_str = ",".join(map(lambda t_col: f"{t_col.name} {t_col.type}", columns))
+    partition_str = ",".join(map(lambda t_col: f"{t_col.name} {t_col.type}", partitions))
+    partition_str = "" if not partition_str else f"PARTITIONED BY ({partition_str})"
 
     if publish_as_symlink:
         delta_table.generate("symlink_format_manifest")
@@ -113,7 +117,7 @@ def publish_delta_to_hive(spark_session: SparkSession,
         publish_table_name=publish_table_name,
         column_str=column_str,
         partition_str=partition_str,
-        location=location
+        location=location,
     )
 
     spark_session.sql(create_table_sql)
@@ -122,8 +126,9 @@ def publish_delta_to_hive(spark_session: SparkSession,
         spark_session.sql(f"""MSCK REPAIR TABLE {publish_schema_name}.{publish_table_name}""")
 
 
-def get_table_info(spark_session: SparkSession, table_path: str) -> (
-        Iterator[HiveTableColumn], Iterator[HiveTableColumn], str):
+def get_table_info(
+    spark_session: SparkSession, table_path: str
+) -> (Iterator[HiveTableColumn], Iterator[HiveTableColumn], str):
     """
       Reads columns, partitions and table data location
 
@@ -131,8 +136,7 @@ def get_table_info(spark_session: SparkSession, table_path: str) -> (
     :param table_path: path to a Delta table
     :return:
     """
-    definition_table = spark_session.sql(
-        f"describe table extended delta.`{table_path}/`")
+    definition_table = spark_session.sql(f"describe table extended delta.`{table_path}/`")
 
     definition_table_rows = list(definition_table.toLocalIterator())
 

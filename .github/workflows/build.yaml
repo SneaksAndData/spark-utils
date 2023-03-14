@@ -31,6 +31,11 @@ jobs:
           set -e
           
           /github/home/.local/bin/poetry install
+      - name: Black
+        shell: bash
+        run: |
+          set -e
+          /github/home/.local/bin/poetry run black . --check --diff
       - name: Lint
         run: |
           set -e

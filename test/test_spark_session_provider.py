@@ -16,9 +16,7 @@ def test_get_session_with_hive():
     try:
         provider = SparkSessionProvider(
             hive_metastore_config=HiveMetastoreConfig(
-                metastore_version="3.1.2",
-                metastore_jars="maven",
-                metastore_uri="thrift://test:9083"
+                metastore_version="3.1.2", metastore_jars="maven", metastore_uri="thrift://test:9083"
             ),
         )
         spark_session = provider.get_session()
