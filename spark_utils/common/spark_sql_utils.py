@@ -34,9 +34,13 @@ from spark_utils.models.job_socket import JobSocket
 from spark_utils.dataframes.functions import union_dataframes
 
 
-def merge_or_create_table(spark_args: SparkJobArgs, spark_session: SparkSession, table_name: str,
-                          output_socket: JobSocket,
-                          merge_key_column="mergeKey"):
+def merge_or_create_table(
+    spark_args: SparkJobArgs,
+    spark_session: SparkSession,
+    table_name: str,
+    output_socket: JobSocket,
+    merge_key_column="mergeKey",
+):
     """
      Writes a specified SQL table or view to the provided output
 
@@ -51,17 +55,17 @@ def merge_or_create_table(spark_args: SparkJobArgs, spark_session: SparkSession,
 
     if spark_args.overwrite():
         output_file_system.delete(path=output_socket.data_path, recursive=True)
-        spark_session.table(table_name).write.format(output_socket.data_format).mode('overwrite').save(
-            output_socket.data_path)
+        spark_session.table(table_name).write.format(output_socket.data_format).mode("overwrite").save(
+            output_socket.data_path
+        )
     else:
         delta_table = DeltaTable.forPath(spark_session, output_socket.data_path)
         delta_table.alias("target").merge(
             spark_session.table(table_name).alias("stagingData"),
             f"""
             stagingData.{merge_key_column} <=> target.{merge_key_column}
-            """) \
-            .whenNotMatchedInsertAll() \
-            .execute()
+            """,
+        ).whenNotMatchedInsertAll().execute()
 
 
 def union_views_to_schema(spark_session: SparkSession, schema: List[StructField], views: List[str]) -> DataFrame:

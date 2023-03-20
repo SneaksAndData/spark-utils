@@ -50,14 +50,14 @@ def decrypt_sensitive(sensitive_content: Optional[str]) -> Optional[str]:
     :param sensitive_content: payload to decrypt
     :return: Decrypted payload
     """
-    encryption_key = os.environ.get('RUNTIME_ENCRYPTION_KEY', '').encode('utf-8')
+    encryption_key = os.environ.get("RUNTIME_ENCRYPTION_KEY", "").encode("utf-8")
 
     if not encryption_key:
-        print('Encryption key not set - skipping operation.')
+        print("Encryption key not set - skipping operation.")
 
     if encryption_key and sensitive_content:
         fernet = Fernet(encryption_key)
-        return fernet.decrypt(sensitive_content.encode('utf-8')).decode('utf-8')
+        return fernet.decrypt(sensitive_content.encode("utf-8")).decode("utf-8")
 
     return None
 
@@ -76,14 +76,10 @@ def read_from_socket(
     :return: Spark dataframe
     """
     read_options = read_options or {}
-    if socket.data_format.startswith('hive'):
+    if socket.data_format.startswith("hive"):
         return spark_session.table(socket.data_path)
 
-    return spark_session \
-        .read \
-        .options(**read_options) \
-        .format(socket.data_format) \
-        .load(socket.data_path)
+    return spark_session.read.options(**read_options).format(socket.data_format).load(socket.data_path)
 
 
 def write_to_socket(
@@ -106,18 +102,12 @@ def write_to_socket(
     if partition_count:
         data = data.repartition(partition_count, *partition_by)
 
-    writer = data.write \
-        .mode('overwrite') \
-        .options(**write_options)
+    writer = data.write.mode("overwrite").options(**write_options)
 
     if partition_by:
         writer = writer.partitionBy(*partition_by)
 
-    if socket.data_format.startswith('hive'):
-        writer \
-            .format(socket.data_format.split('_')[-1]) \
-            .saveAsTable(socket.data_path)
+    if socket.data_format.startswith("hive"):
+        writer.format(socket.data_format.split("_")[-1]).saveAsTable(socket.data_path)
     else:
-        writer \
-            .format(socket.data_format) \
-            .save(socket.data_path)
+        writer.format(socket.data_format).save(socket.data_path)
