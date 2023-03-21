@@ -99,6 +99,7 @@ def write_to_socket(
     found here: https://spark.apache.org/docs/latest/sql-data-sources-parquet.html#data-source-option)
     """
     write_options = write_options or {}
+    partition_by = partition_by or []
     if partition_count:
         data = data.repartition(partition_count, *partition_by)
 
