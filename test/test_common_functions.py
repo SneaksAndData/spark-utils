@@ -52,14 +52,15 @@ Format = namedtuple("format", ["format", "read_options"])
         Format(format="json", read_options={}),
     ],
 )
-@pytest.mark.parametrize(
-    "partition_by", [['strings'], None, []]
-)
-@pytest.mark.parametrize(
-    "partition_count", [None, 1, 2]
-)
-def test_write_to_socket(format_: Format, spark_session: SparkSession, test_base_path: str,
-                         partition_by: Union[None, List[str]], partition_count: Union[None, int]):
+@pytest.mark.parametrize("partition_by", [["strings"], None, []])
+@pytest.mark.parametrize("partition_count", [None, 1, 2])
+def test_write_to_socket(
+    format_: Format,
+    spark_session: SparkSession,
+    test_base_path: str,
+    partition_by: Union[None, List[str]],
+    partition_count: Union[None, int],
+):
     test_data_path = os.path.join(test_base_path, "test_common_functions")
     socket = JobSocket(
         alias="test",
