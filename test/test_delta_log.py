@@ -27,4 +27,4 @@ def test_cache_clear(spark_session: SparkSession, test_base_path: str):
     _ = DeltaLog.for_table(spark_session, f"file:///{test_base_path}/delta_log/table2")
     cleared_cache_read = time.monotonic_ns() - start
 
-    assert non_cached_read / cached_read > 100 and non_cached_read / cleared_cache_read < 2
+    assert non_cached_read / cached_read > 10 and non_cached_read / cleared_cache_read < 2

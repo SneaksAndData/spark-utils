@@ -37,7 +37,6 @@ try:
         V1Container,
         V1ContainerPort,
         V1EnvVar,
-        V1ResourceRequirements,
         V1PodSecurityContext,
         V1NodeAffinity,
         V1NodeSelector,
@@ -62,7 +61,7 @@ class SparkSessionProvider:
     def __init__(
         self,
         *,
-        delta_lake_version="2.12:2.1.0",
+        delta_lake_version="2.12:2.4.0",
         hive_metastore_config: Optional[HiveMetastoreConfig] = None,
         additional_packages: Optional[List[str]] = None,
         additional_configs: Optional[Dict[str, str]] = None,
@@ -86,8 +85,8 @@ class SparkSessionProvider:
             .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
             .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
             .config("spark.jars.ivy", os.path.join(tempfile.gettempdir(), ".ivy2"))
-            .config("spark.sql.legacy.parquet.datetimeRebaseModeInWrite", "CORRECTED")
-            .config("spark.sql.legacy.parquet.int96RebaseModeInWrite", "CORRECTED")
+            .config("spark.sql.parquet.datetimeRebaseModeInWrite", "CORRECTED")
+            .config("spark.sql.parquet.int96RebaseModeInWrite", "CORRECTED")
         )
 
         if hive_metastore_config:
@@ -152,7 +151,6 @@ class SparkSessionProvider:
             .config("spark.kubernetes.driver.pod.name", spark_config.driver_name or os.getenv("SPARK_DRIVER_NAME"))
             .config("spark.app.name", spark_config.application_name)
             .config("spark.kubernetes.executor.podNamePrefix", executor_name)
-            .config("spark.kubernetes.executor.limit.cores", 1)
             .config("spark.driver.host", spark_config.driver_ip or os.getenv("SPARK_DRIVER_IP"))
             .config("spark.kubernetes.namespace", spark_config.k8s_namespace)
             .config("spark.kubernetes.container.image", spark_config.spark_image)
@@ -171,10 +169,6 @@ class SparkSessionProvider:
                         image=spark_config.spark_image,
                         ports=[V1ContainerPort(name="http", container_port=8080, protocol="TCP")],
                         env=[V1EnvVar(name="SPARK_WORKER_WEBUI_PORT", value="8080")],
-                        resources=V1ResourceRequirements(
-                            limits={"cpu": 1, "memory": f"{spark_config.default_executor_memory}Mi"},
-                            requests={"cpu": 1, "memory": f"{spark_config.default_executor_memory}Mi"},
-                        ),
                     )
                 ],
                 restart_policy="Never",
