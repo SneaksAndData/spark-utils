@@ -33,5 +33,5 @@ def getfromstr_uuid(input_str):
     :param input_str: Any string value
     :return: UUID that only matches provided input
     """
-    null_namespace = type("", (), dict(bytes=b""))()
+    null_namespace = type("", (), {"bytes": b''})()
     return str(uuid.uuid3(null_namespace, input_str))

@@ -37,7 +37,6 @@ try:
         V1Container,
         V1ContainerPort,
         V1EnvVar,
-        V1ResourceRequirements,
         V1PodSecurityContext,
         V1NodeAffinity,
         V1NodeSelector,
