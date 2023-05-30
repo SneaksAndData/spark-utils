@@ -45,6 +45,7 @@ class CopyDataOptions:
     :arg timestamp_column: Column name to use for evaluating data age.
     :arg timestamp_column_format: Format for the timestamp
     """
+
     src: JobSocket
     dest: JobSocket
     include_filename: bool = False

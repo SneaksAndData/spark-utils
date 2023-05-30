@@ -1,4 +1,5 @@
 # Introduction
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 Utility functions and classes for working with Dataframes, provisioning SparkSession and much more.
 
