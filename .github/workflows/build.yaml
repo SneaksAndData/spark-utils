@@ -13,7 +13,7 @@ jobs:
     if: ${{ github.ref != 'refs/heads/main' }}
 
     container:
-      image: esdcrdevelopment.azurecr.io/spark:v3.1.1-5-g28008d0-bitnami-c31d3b46-python-3.9.16
+      image: esdcrdevelopment.azurecr.io/spark:v3.2.0-3-g1ee431d-bitnami-0ca3dee2-python-3.9.16
       credentials:
         username: ${{ secrets.AZCR_DEV_USER }}
         password: ${{ secrets.AZCR_DEV_TOKEN }}
