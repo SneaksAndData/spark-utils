@@ -11,7 +11,7 @@ repository = 'https://github.com/SneaksAndData/spark-utils'
 [tool.poetry.dependencies]
 python = ">=3.9, <3.12"
 hadoop-fs-wrapper = "~0.6.1"
-cryptography = "~36.0"
+cryptography = ">=36.0,<41.1"
 delta-spark = "~2.4.0"
 
 kubernetes = { version = "24.2.0", optional = true }
