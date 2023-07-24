@@ -14,7 +14,7 @@ hadoop-fs-wrapper = "~0.6.1"
 cryptography = "~36.0"
 delta-spark = "~2.4.0"
 
-kubernetes = { version = "24.2.0", optional = true }
+kubernetes = { version = "27.2.0", optional = true }
 
 [tool.poetry.extras]
 k8s = [
