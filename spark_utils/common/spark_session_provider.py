@@ -59,6 +59,9 @@ class SparkSessionProvider:
     Provider of a Spark session and related objects
     """
 
+    DELTA_CATALOG_EXTENSION = "io.delta.sql.DeltaSparkSessionExtension"
+    CASSANDRA_CATALOG_EXTENSION = "com.datastax.spark.connector.CassandraSparkExtensions"
+
     def __init__(
         self,
         *,
@@ -83,7 +86,7 @@ class SparkSessionProvider:
 
         self._spark_session_builder = (
             SparkSession.builder.config("spark.jars.packages", ",".join(packages))
-            .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
+            .config("spark.sql.extensions", SparkSessionProvider.DELTA_CATALOG_EXTENSION)
             .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
             .config("spark.jars.ivy", os.path.join(tempfile.gettempdir(), ".ivy2"))
             .config("spark.sql.parquet.datetimeRebaseModeInWrite", "CORRECTED")
@@ -156,7 +159,10 @@ class SparkSessionProvider:
 
         self._spark_session_builder = (
             self._spark_session_builder.config(
-                "spark.sql.extensions", "com.datastax.spark.connector.CassandraSparkExtensions"
+                "spark.sql.extensions",
+                ",".join(
+                    [SparkSessionProvider.DELTA_CATALOG_EXTENSION, SparkSessionProvider.CASSANDRA_CATALOG_EXTENSION]
+                ),
             )
             .config(f"spark.sql.catalog.{db_name}", "com.datastax.spark.connector.datasource.CassandraCatalog")
             .config("spark.files", os.path.join(bundle_path, bundle_file_name))
