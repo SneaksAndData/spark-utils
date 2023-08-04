@@ -165,7 +165,7 @@ class SparkJobArgs:
         :param key: Mapping key
         :return:
         """
-        for parsed in self.sources:
+        for parsed in self._parsed_sources:
             if parsed.alias == key:
                 return parsed
 
@@ -178,7 +178,7 @@ class SparkJobArgs:
         :param key: Mapping key
         :return:
         """
-        for parsed in self.outputs:
+        for parsed in self._parsed_outputs:
             if parsed.alias == key:
                 return parsed
 
