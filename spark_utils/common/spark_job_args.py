@@ -98,6 +98,22 @@ class SparkJobArgs:
         for output in self._parsed_args.output:
             yield JobSocket(*output.split("|"))
 
+    @property
+    def sources(self) -> Iterable[JobSocket]:
+        """
+        Returns parsed sources
+        """
+        for source in self._parsed_sources:
+            yield source
+
+    @property
+    def outputs(self) -> Iterable[JobSocket]:
+        """
+        Returns parsed outputs
+        """
+        for output in self._parsed_outputs:
+            yield output
+
     def new_arg(self, *args, **kwargs):
         """
         Adds one or more new arguments
