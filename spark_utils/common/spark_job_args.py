@@ -94,16 +94,16 @@ class SparkJobArgs:
     def sources(self) -> Iterable[JobSocket]:
         if self._parsed_sources is None:
             self._parsed_sources = [JobSocket(*source.split("|")) for source in self._parsed_args.source]
-        for source in self._parsed_args.source:
-            yield JobSocket(*source.split("|"))
+        for source in self._parsed_sources:
+            yield source
 
     @property
     def outputs(self) -> Iterable[JobSocket]:
         if self._parsed_outputs is None:
             self._parsed_outputs = [JobSocket(*output.split("|")) for output in self._parsed_args.output]
 
-        for output in self._parsed_args.output:
-            yield JobSocket(*output.split("|"))
+        for output in self._parsed_outputs:
+            yield output
 
     def new_arg(self, *args, **kwargs):
         """
