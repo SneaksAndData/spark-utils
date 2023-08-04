@@ -90,11 +90,11 @@ class SparkJobArgs:
         self._parsed_outputs = None
         self._overwrite = False
 
-    def _sources(self) -> Iterable[JobSocket]:
+    def sources(self) -> Iterable[JobSocket]:
         for source in self._parsed_args.source:
             yield JobSocket(*source.split("|"))
 
-    def _outputs(self) -> Iterable[JobSocket]:
+    def outputs(self) -> Iterable[JobSocket]:
         for output in self._parsed_args.output:
             yield JobSocket(*output.split("|"))
 
@@ -136,8 +136,8 @@ class SparkJobArgs:
         else:
             self._parsed_args = self._parser.parse_args()
 
-        self._parsed_sources = list(self._sources())
-        self._parsed_outputs = list(self._outputs())
+        self._parsed_sources = list(self.sources())
+        self._parsed_outputs = list(self.outputs())
         self._overwrite = self._parsed_args.overwrite
 
         return self
