@@ -90,11 +90,18 @@ class SparkJobArgs:
         self._parsed_outputs = None
         self._overwrite = False
 
+    @property
     def sources(self) -> Iterable[JobSocket]:
+        if self._parsed_sources is None:
+            self._parsed_sources = [JobSocket(*source.split("|")) for source in self._parsed_args.source]
         for source in self._parsed_args.source:
             yield JobSocket(*source.split("|"))
 
+    @property
     def outputs(self) -> Iterable[JobSocket]:
+        if self._parsed_outputs is None:
+            self._parsed_outputs = [JobSocket(*output.split("|")) for output in self._parsed_args.output]
+
         for output in self._parsed_args.output:
             yield JobSocket(*output.split("|"))
 
@@ -136,8 +143,6 @@ class SparkJobArgs:
         else:
             self._parsed_args = self._parser.parse_args()
 
-        self._parsed_sources = list(self.sources())
-        self._parsed_outputs = list(self.outputs())
         self._overwrite = self._parsed_args.overwrite
 
         return self
@@ -149,7 +154,7 @@ class SparkJobArgs:
         :param key: Mapping key
         :return:
         """
-        for parsed in self._parsed_sources:
+        for parsed in self.sources:
             if parsed.alias == key:
                 return parsed
 
@@ -162,7 +167,7 @@ class SparkJobArgs:
         :param key: Mapping key
         :return:
         """
-        for parsed in self._parsed_outputs:
+        for parsed in self.outputs:
             if parsed.alias == key:
                 return parsed
 
