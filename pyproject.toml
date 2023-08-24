@@ -13,6 +13,7 @@ python = ">=3.9, <3.12"
 hadoop-fs-wrapper = "~0.6.1"
 cryptography = "~36.0"
 delta-spark = "~2.4.0"
+backoff = "~2.2"
 
 kubernetes = { version = "24.2.0", optional = true }
 
