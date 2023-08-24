@@ -271,7 +271,7 @@ class SparkSessionProvider:
             """
             Check whether this py4j error can be retried.
             """
-            return any([transient_error in str(error).lower() for transient_error in self.TRANSIENT_INIT_ERRORS])
+            return not any([transient_error in str(error).lower() for transient_error in self.TRANSIENT_INIT_ERRORS])
 
         @backoff.on_exception(
             wait_gen=backoff.expo,
