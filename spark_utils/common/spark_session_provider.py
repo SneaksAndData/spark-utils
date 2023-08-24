@@ -25,10 +25,14 @@
 """
 import base64
 import json
+import logging
 import os
 import tempfile
 import uuid
 from typing import Optional, List, Dict
+
+import backoff
+from py4j.protocol import Py4JJavaError
 
 try:
     from kubernetes.client import (
@@ -61,6 +65,7 @@ class SparkSessionProvider:
 
     DELTA_CATALOG_EXTENSION = "io.delta.sql.DeltaSparkSessionExtension"
     CASSANDRA_CATALOG_EXTENSION = "com.datastax.spark.connector.CassandraSparkExtensions"
+    TRANSIENT_INIT_ERRORS = ["temporary failure in name resolution"]
 
     def __init__(
         self,
@@ -70,6 +75,7 @@ class SparkSessionProvider:
         additional_packages: Optional[List[str]] = None,
         additional_configs: Optional[Dict[str, str]] = None,
         run_local=False,
+        session_init_max_backoff_seconds=180,
     ):
         """
         :param delta_lake_version: Delta lake package version.
@@ -78,7 +84,11 @@ class SparkSessionProvider:
          This setting only works if a session is started from python and not spark-submit.
         :param additional_configs: Any additional spark configurations.
         :param run_local: Whether single-node local master should be used.
+        :param session_init_max_backoff_seconds: Maximum amount of time to spend in backoff retries in case of transient session creation errors.
         """
+
+        self._session_init_max_backoff_seconds = session_init_max_backoff_seconds
+        logging.getLogger("backoff").addHandler(logging.StreamHandler())
 
         packages = [f"io.delta:delta-core_{delta_lake_version}"]
         if additional_packages:
@@ -256,7 +266,24 @@ class SparkSessionProvider:
 
         :return: SparkSession
         """
-        if os.environ.get("PYTEST_CURRENT_TEST") or self._run_local:
-            return self._spark_session_builder.master("local[*]").getOrCreate()
 
-        return self._spark_session_builder.getOrCreate()
+        def is_fatal_py4j_error(error: Py4JJavaError) -> bool:
+            """
+            Check whether this py4j error can be retried.
+            """
+            return any([transient_error in str(error).lower() for transient_error in self.TRANSIENT_INIT_ERRORS])
+
+        @backoff.on_exception(
+            wait_gen=backoff.expo,
+            exception=(Py4JJavaError,),
+            raise_on_giveup=True,
+            giveup=is_fatal_py4j_error,
+            max_time=self._session_init_max_backoff_seconds,
+        )
+        def _get_session():
+            if os.environ.get("PYTEST_CURRENT_TEST") or self._run_local:
+                return self._spark_session_builder.master("local[*]").getOrCreate()
+
+            return self._spark_session_builder.getOrCreate()
+
+        return _get_session()
