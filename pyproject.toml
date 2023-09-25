@@ -15,7 +15,7 @@ cryptography = "~36.0"
 delta-spark = "~2.4.0"
 backoff = "~2.2"
 
-kubernetes = { version = "24.2.0", optional = true }
+kubernetes = { version = "28.1.0", optional = true }
 
 [tool.poetry.extras]
 k8s = [
