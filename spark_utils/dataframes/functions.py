@@ -142,6 +142,7 @@ def rename_column(name: str) -> str:
         "=",
         "/",
         "\\",
+        ".",
     ]
 
     for illegal in illegals:
