@@ -7,6 +7,7 @@ from collections import namedtuple
 from pyspark.sql import DataFrame
 from pyspark.sql import SparkSession
 
+from spark_utils.dataframes.functions import rename_column
 from spark_utils.models.job_socket import JobSocket
 from spark_utils.common.functions import read_from_socket, write_to_socket
 
@@ -97,3 +98,18 @@ def test_job_socket_serialize(sep: str, test_base_path: str):
     )
 
     assert socket.serialize(separator=sep) == f"{socket.alias}{sep}{socket.data_path}{sep}{socket.data_format}"
+
+
+@pytest.mark.parametrize(
+    "funky_name, expected_name",
+    [
+        ("a--bc", "abc"),
+        (".abc", "abc"),
+        ("a bc", "abc"),
+        ("a\\bc", "abc"),
+        ("a/bc", "abc"),
+        ("a\t{};,bc", "abc"),
+    ],
+)
+def test_column_rename(funky_name: str, expected_name: str):
+    assert expected_name == rename_column(funky_name)
