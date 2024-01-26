@@ -23,7 +23,7 @@
 """
   Helper functions for Spark Dataframes
 """
-
+import re
 from typing import List, Iterator, Tuple
 
 from datetime import datetime
@@ -130,25 +130,15 @@ def rename_column(name: str) -> str:
     :return:
     """
 
-    illegals = [
-        " ",
-        ",",
-        ";",
-        "{",
-        "}",
-        "(",
-        ")",
-        "\t",
-        "=",
-        "/",
-        "\\",
-        ".",
-    ]
+    return re.sub(r"\W+", "", name)
 
-    for illegal in illegals:
-        name = name.replace(illegal, "")
 
-    return name
+def safe_encode(column_name: str) -> str:
+    """
+    Adds `` around the column name so columns with unsupported chars are resolved
+    """
+
+    return f"`{column_name}`"
 
 
 def rename_columns(dataframe: DataFrame) -> DataFrame:
@@ -158,7 +148,7 @@ def rename_columns(dataframe: DataFrame) -> DataFrame:
     :param dataframe: Source dataframe
     :return: Dataframe with renamed columns
     """
-    return dataframe.select([col(c).alias(rename_column(c)) for c in dataframe.columns])
+    return dataframe.select([col(safe_encode(c)).alias(rename_column(c)) for c in dataframe.columns])
 
 
 def _max_timestamp(dataframe: DataFrame, timestamp_column: str, timestamp_column_format: str) -> datetime:
