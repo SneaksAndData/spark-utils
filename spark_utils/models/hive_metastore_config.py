@@ -31,8 +31,9 @@ from typing import Optional
 @dataclass
 class HiveMetastoreConfig:
     """
-      Parameters required by Spark when connecting to an external Hive Metastore
+    Parameters required by Spark when connecting to an external Hive Metastore
     """
+
     metastore_version: str
     metastore_jars: str
     connection_url: Optional[str] = None

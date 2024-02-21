@@ -9,10 +9,11 @@ readme = "README.md"
 repository = 'https://github.com/SneaksAndData/spark-utils'
 
 [tool.poetry.dependencies]
-python = "^3.9"
-hadoop-fs-wrapper = "~0.5.2"
+python = ">=3.9, <3.12"
+hadoop-fs-wrapper = "~0.6.1"
 cryptography = "~36.0"
-delta-spark = "~2.1.1"
+delta-spark = "~2.4.0"
+backoff = "~2.2"
 
 kubernetes = { version = "24.2.0", optional = true }
 
@@ -25,7 +26,11 @@ k8s = [
 pytest = "^7.0"
 pytest-cov = "^2.12"
 pylint = "^2.12"
+black = "~22.12.0"
 
 [build-system]
 requires = ["poetry-core>=1.2.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120

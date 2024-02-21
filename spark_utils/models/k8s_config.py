@@ -10,7 +10,7 @@ from typing import Optional, Dict
 @dataclass
 class SparkKubernetesConfig:
     """
-      Configuration parameters required to launch a k8s driver in client mode.
+    Configuration parameters required to launch a k8s driver in client mode.
     """
 
     def __post_init__(self):
@@ -27,10 +27,10 @@ class SparkKubernetesConfig:
     spark_image: str
 
     # Group for the Spark UID.
-    spark_gid: Optional[str] = '0'
+    spark_gid: Optional[str] = "0"
 
     # Spark UID.
-    spark_uid: Optional[str] = '1001'
+    spark_uid: Optional[str] = "1001"
 
     # Default memory to assign to executors if spark.executor.memory is not provided.
     default_executor_memory: Optional[int] = 2000

@@ -33,24 +33,13 @@ from spark_utils.models.job_socket import JobSocket
 
 class DecryptAction(argparse.Action):
     """
-      Action that performs decryption of a provided value using encryption key provided from the environment.
+    Action that performs decryption of a provided value using encryption key provided from the environment.
     """
 
-    def __init__(self,
-                 option_strings,
-                 dest,
-                 const=None,
-                 default=None,
-                 required=False,
-                 **kwargs):
+    def __init__(self, option_strings, dest, const=None, default=None, required=False, **kwargs):
         super().__init__(
-            option_strings=option_strings,
-            dest=dest,
-            nargs=1,
-            const=const,
-            default=default,
-            required=required,
-            **kwargs)
+            option_strings=option_strings, dest=dest, nargs=1, const=const, default=default, required=required, **kwargs
+        )
 
     def __call__(self, parser, namespace, values, option_string=None):
         arg_value = values[0]
@@ -63,28 +52,38 @@ class DecryptAction(argparse.Action):
 
 class SparkJobArgs:
     """
-     Argsparse-based Spark job arguments provider
+    Argsparse-based Spark job arguments provider
 
-     This adds three default arguments to each job:
-      - --source a|b|c d|e|f ...
-      Describes inputs used by a job
-      Here `a` is a mapping key that a developer should use to extract path/format information for the source
-           `b` is a source path, in URI format: file:///, abfss:// etc.
-           'c' is a data format: json, csv, delta etc.
-      - --output a|b|c d|e|f...
-      Describes output locations used by a job
-      Same meanings as source attributes
-      - --overwrite
-      Controls overwrite behaviour. Will wipe the whole directory if set and honored by job developer.
+    This adds three default arguments to each job:
+     - --source a|b|c d|e|f ...
+     Describes inputs used by a job
+     Here `a` is a mapping key that a developer should use to extract path/format information for the source
+          `b` is a source path, in URI format: file:///, abfss:// etc.
+          'c' is a data format: json, csv, delta etc.
+     - --output a|b|c d|e|f...
+     Describes output locations used by a job
+     Same meanings as source attributes
+     - --overwrite
+     Controls overwrite behaviour. Will wipe the whole directory if set and honored by job developer.
     """
 
     def __init__(self):
         self._parser = argparse.ArgumentParser(description="Runtime arguments")
-        self._parser.add_argument("--source", type=str, nargs='+', default=[],
-                                  help='Sources to read data from, in a form of <source key>:<source path>')
-        self._parser.add_argument("--output", type=str, nargs='+', default=[],
-                                  help='Outputs to write data to, in a form of <output key>:<output path>')
-        self._parser.add_argument("--overwrite", dest='overwrite', action='store_true', help="Overwrite outputs")
+        self._parser.add_argument(
+            "--source",
+            type=str,
+            nargs="+",
+            default=[],
+            help="Sources to read data from, in a form of <source key>:<source path>",
+        )
+        self._parser.add_argument(
+            "--output",
+            type=str,
+            nargs="+",
+            default=[],
+            help="Outputs to write data to, in a form of <output key>:<output path>",
+        )
+        self._parser.add_argument("--overwrite", dest="overwrite", action="store_true", help="Overwrite outputs")
 
         self._parsed_args = None
         self._parsed_sources = None
@@ -93,11 +92,27 @@ class SparkJobArgs:
 
     def _sources(self) -> Iterable[JobSocket]:
         for source in self._parsed_args.source:
-            yield JobSocket(*source.split('|'))
+            yield JobSocket(*source.split("|"))
 
     def _outputs(self) -> Iterable[JobSocket]:
         for output in self._parsed_args.output:
-            yield JobSocket(*output.split('|'))
+            yield JobSocket(*output.split("|"))
+
+    @property
+    def sources(self) -> Iterable[JobSocket]:
+        """
+        Returns parsed sources
+        """
+        for source in self._parsed_sources:
+            yield source
+
+    @property
+    def outputs(self) -> Iterable[JobSocket]:
+        """
+        Returns parsed outputs
+        """
+        for output in self._parsed_outputs:
+            yield output
 
     def new_arg(self, *args, **kwargs):
         """
@@ -116,10 +131,10 @@ class SparkJobArgs:
         :param args: argsparse.add_argument(...)
         :return:
         """
-        if 'action' not in kwargs:
-            kwargs.setdefault('action', DecryptAction)
+        if "action" not in kwargs:
+            kwargs.setdefault("action", DecryptAction)
         else:
-            kwargs['action'] = DecryptAction
+            kwargs["action"] = DecryptAction
 
         self._parser.add_argument(*args, **kwargs)
 
