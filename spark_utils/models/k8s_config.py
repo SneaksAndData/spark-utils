@@ -13,6 +13,10 @@ class SparkKubernetesConfig:
       Configuration parameters required to launch a k8s driver in client mode.
     """
 
+    def __post_init__(self):
+        self.driver_ip = socket.gethostbyname(socket.gethostname())
+        self.driver_name = socket.gethostname()
+
     # Spark Application name for this session.
     application_name: str
 
@@ -32,10 +36,10 @@ class SparkKubernetesConfig:
     default_executor_memory: Optional[int] = 2000
 
     # Name of a driver host.
-    driver_name: Optional[str] = socket.gethostname()
+    driver_name: Optional[str] = None
 
     # IP address of a driver host.
-    driver_ip: Optional[str] = socket.gethostbyname(socket.gethostname())
+    driver_ip: Optional[str] = None
 
     # Prefix to use when naming executors.
     executor_name_prefix: Optional[str] = None
