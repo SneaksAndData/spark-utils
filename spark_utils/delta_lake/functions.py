@@ -23,7 +23,7 @@
 """
   Helper functions for Delta Lake
 """
-
+import re
 from typing import Iterator
 
 from delta import DeltaTable
@@ -83,7 +83,7 @@ def publish_delta_to_hive(
 
       OR
 
-      Generate simple Hive table linked to abfss path
+      Generate simple Hive table linked to abfss or s3a path
 
     :param spark_session: SparkSession that is configured to use an external Hive Metastore
     :param publish_table_name: Name of a table to publish
@@ -93,9 +93,10 @@ def publish_delta_to_hive(
     :param publish_as_symlink: Generate symlink format manifest to make table readable from Trino
     :return:
     """
-
+    path_regex = r"^(abfss|s3a):\/\/([^ ]+)$"
+    protocol, data_location = re.match(path_regex, data_path).groups()
     spark_session.sql(
-        f"CREATE SCHEMA IF NOT EXISTS {publish_schema_name} location 'abfss://{'/'.join(data_path[8:].split('/')[0:-1])}/'"
+        f"CREATE SCHEMA IF NOT EXISTS {publish_schema_name} location '{protocol}://{'/'.join(data_location.split('/')[0:-1])}/'"
     )
     if refresh:
         spark_session.sql(f"DROP TABLE IF EXISTS {publish_schema_name}.{publish_table_name}")
