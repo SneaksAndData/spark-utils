@@ -93,8 +93,7 @@ def publish_delta_to_hive(
     :param publish_as_symlink: Generate symlink format manifest to make table readable from Trino
     :return:
     """
-    path_regex = r"^(abfss|s3a):\/\/([^ ]+)$"
-    protocol, data_location = re.match(path_regex, data_path).groups()
+    protocol, data_location = re.match(r"^(abfss|s3a):\/\/([^ ]+)$", data_path).groups()
     spark_session.sql(
         f"CREATE SCHEMA IF NOT EXISTS {publish_schema_name} location '{protocol}://{'/'.join(data_location.split('/')[0:-1])}/'"
     )
