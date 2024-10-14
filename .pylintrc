@@ -5,3 +5,8 @@
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once).
 disable=C0301,R0903,W0511,C0303,W0107,R0913,R0902
+
+[DESIGN]
+max-args=10
+max-attributes=10
+max-positional-arguments=10

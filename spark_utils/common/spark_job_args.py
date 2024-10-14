@@ -103,16 +103,14 @@ class SparkJobArgs:
         """
         Returns parsed sources
         """
-        for source in self._parsed_sources:
-            yield source
+        yield from self._parsed_sources
 
     @property
     def outputs(self) -> Iterable[JobSocket]:
         """
         Returns parsed outputs
         """
-        for output in self._parsed_outputs:
-            yield output
+        yield from self._parsed_outputs
 
     def new_arg(self, *args, **kwargs):
         """
