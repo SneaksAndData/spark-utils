@@ -70,7 +70,7 @@ class SparkSessionProvider:
     def __init__(
         self,
         *,
-        delta_lake_version="2.12:2.4.0",
+        delta_lake_version="2.12:3.2.1",
         hive_metastore_config: Optional[HiveMetastoreConfig] = None,
         additional_packages: Optional[List[str]] = None,
         additional_configs: Optional[Dict[str, str]] = None,
@@ -90,7 +90,7 @@ class SparkSessionProvider:
         self._session_init_max_backoff_seconds = session_init_max_backoff_seconds
         logging.getLogger("backoff").addHandler(logging.StreamHandler())
 
-        packages = [f"io.delta:delta-core_{delta_lake_version}"]
+        packages = [f"io.delta:delta-spark_{delta_lake_version}"]
         if additional_packages:
             packages.extend(additional_packages)
 
