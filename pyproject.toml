@@ -11,7 +11,7 @@ repository = 'https://github.com/SneaksAndData/spark-utils'
 [tool.poetry.dependencies]
 python = ">=3.11, <3.13"
 hadoop-fs-wrapper = "~0.7"
-cryptography = "~43.0.1"
+cryptography = "^36"
 delta-spark = "~3.2.1"
 backoff = "~2.2"
 
