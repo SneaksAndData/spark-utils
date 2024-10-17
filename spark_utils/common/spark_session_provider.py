@@ -149,13 +149,10 @@ class SparkSessionProvider:
 
     def with_astra_bundle(self, db_name: str, bundle_bytes: str) -> "SparkSessionProvider":
         """
-        If you do not have the jar available, remember to create the session provider with this package added:
-          SparkSessionProvider(additional_packages=["com.datastax.spark:spark-cassandra-connector_2.12:3.4.0"])
+         Mounts Astra DB bundle into a Spark Session.
 
         :param db_name: Astra database name to use as Spark Catalog reference
         :param bundle_bytes: Base64 encoded secure bundle zip content. Generate with `cat bundle.zip | base64`
-        :param client_id: Connection token client id
-        :param client_secret: Connection token client secret
         """
         bundle_file_name = f"{db_name}_bundle"
         bundle_path = os.path.join(tempfile.gettempdir(), ".astra")
