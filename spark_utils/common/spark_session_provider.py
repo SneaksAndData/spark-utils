@@ -147,9 +147,7 @@ class SparkSessionProvider:
         """
         return self._spark_session_builder
 
-    def with_astra_db(
-        self, db_name: str, bundle_bytes: str, client_id: str, client_secret: str
-    ) -> "SparkSessionProvider":
+    def with_astra_bundle(self, db_name: str, bundle_bytes: str) -> "SparkSessionProvider":
         """
         If you do not have the jar available, remember to create the session provider with this package added:
           SparkSessionProvider(additional_packages=["com.datastax.spark:spark-cassandra-connector_2.12:3.4.0"])
