@@ -64,7 +64,6 @@ class SparkSessionProvider:
     """
 
     DELTA_CATALOG_EXTENSION = "io.delta.sql.DeltaSparkSessionExtension"
-    CASSANDRA_CATALOG_EXTENSION = "com.datastax.spark.connector.CassandraSparkExtensions"
     TRANSIENT_INIT_ERRORS = ["temporary failure in name resolution"]
 
     def __init__(
@@ -148,17 +147,12 @@ class SparkSessionProvider:
         """
         return self._spark_session_builder
 
-    def with_astra_db(
-        self, db_name: str, bundle_bytes: str, client_id: str, client_secret: str
-    ) -> "SparkSessionProvider":
+    def with_astra_bundle(self, db_name: str, bundle_bytes: str) -> "SparkSessionProvider":
         """
-        If you do not have the jar available, remember to create the session provider with this package added:
-          SparkSessionProvider(additional_packages=["com.datastax.spark:spark-cassandra-connector_2.12:3.4.0"])
+         Mounts Astra DB bundle into a Spark Session.
 
         :param db_name: Astra database name to use as Spark Catalog reference
         :param bundle_bytes: Base64 encoded secure bundle zip content. Generate with `cat bundle.zip | base64`
-        :param client_id: Connection token client id
-        :param client_secret: Connection token client secret
         """
         bundle_file_name = f"{db_name}_bundle"
         bundle_path = os.path.join(tempfile.gettempdir(), ".astra")
@@ -167,19 +161,8 @@ class SparkSessionProvider:
         with open(os.path.join(bundle_path, bundle_file_name), "wb") as bundle_file:
             bundle_file.write(base64.b64decode(bundle_bytes))
 
-        self._spark_session_builder = (
-            self._spark_session_builder.config(
-                "spark.sql.extensions",
-                ",".join(
-                    [SparkSessionProvider.DELTA_CATALOG_EXTENSION, SparkSessionProvider.CASSANDRA_CATALOG_EXTENSION]
-                ),
-            )
-            .config(f"spark.sql.catalog.{db_name}", "com.datastax.spark.connector.datasource.CassandraCatalog")
-            .config("spark.files", os.path.join(bundle_path, bundle_file_name))
-            .config("spark.cassandra.connection.config.cloud.path", bundle_file_name)
-            .config("spark.cassandra.auth.username", client_id)
-            .config("spark.cassandra.auth.password", client_secret)
-            .config("spark.dse.continuousPagingEnabled", "false")
+        self._spark_session_builder = self._spark_session_builder.config(
+            "spark.files", os.path.join(bundle_path, bundle_file_name)
         )
 
         return self
