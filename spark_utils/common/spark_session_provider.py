@@ -64,7 +64,6 @@ class SparkSessionProvider:
     """
 
     DELTA_CATALOG_EXTENSION = "io.delta.sql.DeltaSparkSessionExtension"
-    CASSANDRA_CATALOG_EXTENSION = "com.datastax.spark.connector.CassandraSparkExtensions"
     TRANSIENT_INIT_ERRORS = ["temporary failure in name resolution"]
 
     def __init__(
@@ -167,19 +166,8 @@ class SparkSessionProvider:
         with open(os.path.join(bundle_path, bundle_file_name), "wb") as bundle_file:
             bundle_file.write(base64.b64decode(bundle_bytes))
 
-        self._spark_session_builder = (
-            self._spark_session_builder.config(
-                "spark.sql.extensions",
-                ",".join(
-                    [SparkSessionProvider.DELTA_CATALOG_EXTENSION, SparkSessionProvider.CASSANDRA_CATALOG_EXTENSION]
-                ),
-            )
-            .config(f"spark.sql.catalog.{db_name}", "com.datastax.spark.connector.datasource.CassandraCatalog")
-            .config("spark.files", os.path.join(bundle_path, bundle_file_name))
-            .config("spark.cassandra.connection.config.cloud.path", bundle_file_name)
-            .config("spark.cassandra.auth.username", client_id)
-            .config("spark.cassandra.auth.password", client_secret)
-            .config("spark.dse.continuousPagingEnabled", "false")
+        self._spark_session_builder = self._spark_session_builder.config(
+            "spark.files", os.path.join(bundle_path, bundle_file_name)
         )
 
         return self
