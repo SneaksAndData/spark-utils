@@ -6,7 +6,7 @@ from tests.common import generate_table
 
 
 def test_delta_compact(spark_session: SparkSession, semantic_logger):
-    test_data_path = generate_table(spark_session, "compact_v2")
+    test_data_path = generate_table(spark_session, "compact")
 
     delta_compact(
         spark_session=spark_session,
