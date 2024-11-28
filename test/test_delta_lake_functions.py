@@ -19,4 +19,4 @@ def test_delta_compact(spark_session: SparkSession):
     num_log_files = len(glob(f"{test_data_path}/_delta_log/*.json"))
 
     # logs are cleaned on a daily basis, so we cannot test the log retention
-    assert num_parquet_files == 4 and num_log_files == 13
+    assert num_parquet_files == 1 and num_log_files == 14
