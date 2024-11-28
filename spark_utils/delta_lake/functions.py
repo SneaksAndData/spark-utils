@@ -157,3 +157,87 @@ def get_table_info(
         return [table_col for table_col in cols if table_col.name not in parts_names], parts, table_path
 
     return cols, [], table_path
+
+
+def delta_compact_v2(
+    spark_session: SparkSession,
+    path: str,
+    logger: SemanticLogger,
+    retain_hours: float = 48,
+    compact_from_predicate: Optional[str] = None,
+    target_file_size_bytes: Optional[int] = None,
+    vacuum_only: bool = True,
+    refresh_cache=False,
+) -> None:
+    """
+      Runs bin-packing optimization to reduce number of files/increase average file size in the table physical storage.
+      Refreshes delta cache after opt/vacuum have been finished.
+      https://docs.delta.io/latest/optimizations-oss.html#optimizations
+
+    :param spark_session: Spark session that will perform the operation.
+    :param path: Path to delta table, filesystem or hive.
+    :param logger: Logger instance to report compaction stats.
+    :param retain_hours: Age of data to retain, defaults to 48 hours.
+    :param compact_from_predicate: Optional predicate to select a subset of data to compact (sql string).
+    :param target_file_size_bytes: Optional target file size in bytes. Defaults to system default (1gb for Delta 2.1) if not provided.
+    :param vacuum_only: If set to True, will perform a vacuum operation w/o compaction.
+    :param refresh_cache: Refreshes table cache for this spark session.
+    :return:
+    """
+    spark_session.conf.set("spark.databricks.delta.optimize.repartition.enabled", "true")
+
+    table_to_compact = (
+        DeltaTable.forPath(sparkSession=spark_session, path=path)
+        if "://" in path
+        else DeltaTable.forName(sparkSession=spark_session, tableOrViewName=path)
+    )
+
+    if not vacuum_only:
+        if target_file_size_bytes:
+            spark_session.conf.set("spark.databricks.delta.optimize.minFileSize", str(target_file_size_bytes))
+            spark_session.conf.set("spark.databricks.delta.optimize.maxFileSize", str(target_file_size_bytes))
+
+        stats = (
+            table_to_compact.optimize().where(compact_from_predicate).executeCompaction()
+            if compact_from_predicate
+            else table_to_compact.optimize().executeCompaction()
+        )
+
+        metrics = stats.head().metrics
+        logger.info(
+            "Compacted a delta table {path}. Files added {files_added}, removed {files_removed}, new average file size {file_size}",
+            path=path,
+            files_added=metrics.numFilesAdded,
+            files_removed=metrics.numFilesRemoved,
+            file_size=math.ceil(metrics.filesAdded.avg / 1024 / 1024),
+        )
+
+    logger.info("Vacuuming table {path} to last {retain_hours} hours", path=path, retain_hours=round(retain_hours))
+    table_path = f"delta.`{path}`" if "://" in path else path
+    current_interval = int(
+        re.search(
+            r"\b\d+\b",
+            table_to_compact.detail().head().properties.get("delta.logRetentionDuration", "interval 168 hours"),
+        ).group()
+    )
+
+    if current_interval != round(retain_hours):
+        logger.info(
+            "Current interval {current_interval} does not match provided retain_hours of {retain_hours} for path {path}",
+            current_interval=current_interval,
+            retain_hours=round(retain_hours),
+            path=path,
+        )
+        spark_session.sql(
+            f"ALTER table {table_path} SET TBLPROPERTIES ('delta.logRetentionDuration'='interval {round(retain_hours)} hours')"
+        )
+
+    # not reporting vacuum stats as python API returns an empty dataframe for some reason
+    table_to_compact.vacuum(retentionHours=retain_hours)
+
+    logger.info("Refreshing cache for table {path}", path=path)
+    if refresh_cache:
+        if "://" in path:
+            spark_session.sql(f"refresh {path}")
+        else:
+            spark_session.sql(f"refresh table {path}")
