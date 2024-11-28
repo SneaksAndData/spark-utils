@@ -196,10 +196,10 @@ def delta_compact(
             spark_session.conf.set("spark.databricks.delta.optimize.minFileSize", str(target_file_size_bytes))
             spark_session.conf.set("spark.databricks.delta.optimize.maxFileSize", str(target_file_size_bytes))
 
-        compaction = table_to_compact.optimize()
         if compact_from_predicate:
-            compaction = compaction.where(compact_from_predicate)
-        compaction.executeCompaction()
+            table_to_compact.optimize().where(compact_from_predicate).executeCompaction()
+        else:
+            table_to_compact.optimize().executeCompaction()
 
     table_path = f"delta.`{path}`" if "://" in path else path
     current_interval = int(
