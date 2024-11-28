@@ -25,7 +25,6 @@
 """
 import re
 from typing import Iterator, Optional
-import math
 
 
 from delta import DeltaTable
