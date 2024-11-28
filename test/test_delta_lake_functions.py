@@ -2,16 +2,15 @@ from spark_utils.delta_lake.functions import delta_compact
 from glob import glob
 from pyspark.sql import SparkSession
 
-from tests.common import generate_table
+from test.common import generate_table
 
 
-def test_delta_compact(spark_session: SparkSession, semantic_logger):
+def test_delta_compact(spark_session: SparkSession):
     test_data_path = generate_table(spark_session, "compact")
 
     delta_compact(
         spark_session=spark_session,
         path=f"file://{test_data_path}",
-        logger=semantic_logger,
         retain_hours=0,
         vacuum_only=False,
     )
