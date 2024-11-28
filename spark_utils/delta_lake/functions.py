@@ -164,6 +164,7 @@ def delta_compact(
     spark_session: SparkSession,
     path: str,
     retain_hours: float = 48,
+    compact_from_predicate: Optional[str] = None,
     target_file_size_bytes: Optional[int] = None,
     vacuum_only: bool = True,
     refresh_cache=False,
@@ -195,6 +196,13 @@ def delta_compact(
             spark_session.conf.set("spark.databricks.delta.optimize.minFileSize", str(target_file_size_bytes))
             spark_session.conf.set("spark.databricks.delta.optimize.maxFileSize", str(target_file_size_bytes))
 
+        table_to_compact.optimize().where(compact_from_predicate).executeCompaction()
+        (
+            table_to_compact.optimize().where(compact_from_predicate).executeCompaction()
+            if compact_from_predicate
+            else table_to_compact.optimize().executeCompaction()
+        )
+
     table_path = f"delta.`{path}`" if "://" in path else path
     current_interval = int(
         re.search(
@@ -208,7 +216,6 @@ def delta_compact(
             f"ALTER table {table_path} SET TBLPROPERTIES ('delta.logRetentionDuration'='interval {round(retain_hours)} hours')"
         )
 
-    # not reporting vacuum stats as python API returns an empty dataframe for some reason
     table_to_compact.vacuum(retentionHours=retain_hours)
 
     if refresh_cache:
