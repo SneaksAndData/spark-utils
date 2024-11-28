@@ -159,7 +159,7 @@ def get_table_info(
     return cols, [], table_path
 
 
-def delta_compact_v2(
+def delta_compact(
     spark_session: SparkSession,
     path: str,
     logger: SemanticLogger,

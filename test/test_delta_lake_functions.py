@@ -1,14 +1,14 @@
-from spark_utils.delta_lake.functions import delta_compact_v2
+from spark_utils.delta_lake.functions import delta_compact
 from glob import glob
 from pyspark.sql import SparkSession
 
 from tests.common import generate_table
 
 
-def test_compact_v2(spark_session: SparkSession, semantic_logger):
+def test_delta_compact(spark_session: SparkSession, semantic_logger):
     test_data_path = generate_table(spark_session, "compact_v2")
 
-    delta_compact_v2(
+    delta_compact(
         spark_session=spark_session,
         path=f"file://{test_data_path}",
         logger=semantic_logger,
