@@ -11,6 +11,7 @@ def spark_session():
         additional_configs={
             "spark.driver.extraJavaOptions": java_17_launch_options,
             "spark.executor.extraJavaOptions": java_17_launch_options,
+            "spark.databricks.delta.retentionDurationCheck.enabled": "false",
         }
     ).get_session()
 
