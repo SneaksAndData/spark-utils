@@ -17,11 +17,11 @@ jobs:
       pull-requests: write
 
     container:
-      image: ghcr.io/sneaksanddata/spark:v5.0.1
+      image: ghcr.io/sneaksanddata/spark:v5.0.2
       credentials:
         username: USERNAME
         password: ${{ secrets.GHCR_TOKEN }}
-      options: -u root -w /opt/bitnami/spark --mount type=tmpfs,destination=/home/spark
+      options: -u root -w /opt/spark --mount type=tmpfs,destination=/home/spark
 
     steps:
       - uses: actions/checkout@v4
