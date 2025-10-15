@@ -21,7 +21,7 @@ jobs:
       credentials:
         username: USERNAME
         password: ${{ secrets.GHCR_TOKEN }}
-      options: -u root -w /opt/bitnami/spark --mount type=tmpfs,destination=/home/spark
+      options: -u root -w /opt/spark --mount type=tmpfs,destination=/home/spark
 
     steps:
       - uses: actions/checkout@v4
