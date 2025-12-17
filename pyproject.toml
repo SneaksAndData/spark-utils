@@ -12,7 +12,7 @@ repository = 'https://github.com/SneaksAndData/spark-utils'
 python = ">=3.11, <3.13"
 hadoop-fs-wrapper = "~0.7"
 cryptography = ">=36"
-delta-spark = "~3.2.1"
+delta-spark = { version = "~3.2.1", optional = true }
 backoff = "~2.2"
 
 kubernetes = { version = "^34", optional = true }
@@ -20,6 +20,9 @@ kubernetes = { version = "^34", optional = true }
 [tool.poetry.extras]
 k8s = [
     'kubernetes'
+]
+delta = [
+    'delta-spark'
 ]
 
 [tool.poetry.dev-dependencies]

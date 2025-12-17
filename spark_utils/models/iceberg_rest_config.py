@@ -31,15 +31,15 @@ class IcebergRestConfig:
     """
 
     catalog_uri: str
+    catalog_alias: str
     warehouse: str
     oauth2_uri: str | None = None
     scope: str | None = None
     client_id: str | None = None
     client_secret: str | None = None
 
-    version: str = "org.apache.iceberg:iceberg-spark-runtime-3.5_2.13:1.10.0"
+    version: str = "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.10.0"
     s3_version: str = "org.apache.iceberg:iceberg-aws-bundle:1.10.0"
-    catalog_alias: str = "iceberg_rest_default"
     catalog_class: str = "org.apache.iceberg.spark.SparkCatalog"
     sql_extensions: str = "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
     catalog_impl: str = "org.apache.iceberg.rest.RESTCatalog"

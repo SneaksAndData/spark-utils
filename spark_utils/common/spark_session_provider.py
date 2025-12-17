@@ -121,11 +121,17 @@ class SparkSessionProvider:
             .config(f"spark.sql.catalog.{config.catalog_alias}", config.catalog_class)
             .config(f"spark.sql.catalog.{config.catalog_alias}.catalog-impl", config.catalog_impl)
             .config(f"spark.sql.catalog.{config.catalog_alias}.uri", config.catalog_uri)
-            .config(f"spark.sql.catalog.{config.catalog_alias}.credential", config.get_credentials())
-            .config(f"spark.sql.catalog.{config.catalog_alias}.oauth2-server-uri", config.oauth2_uri)
             .config(f"spark.sql.catalog.{config.catalog_alias}.warehouse", config.warehouse)
-            .config(f"spark.sql.catalog.{config.catalog_alias}.scope", config.scope)
         )
+
+        if config.has_auth():
+            self._spark_session_builder = (
+                self._spark_session_builder.config(
+                    f"spark.sql.catalog.{config.catalog_alias}.credential", config.get_credentials()
+                )
+                .config(f"spark.sql.catalog.{config.catalog_alias}.oauth2-server-uri", config.oauth2_uri)
+                .config(f"spark.sql.catalog.{config.catalog_alias}.scope", config.scope)
+            )
 
         return self
 
