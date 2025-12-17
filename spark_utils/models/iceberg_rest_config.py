@@ -41,7 +41,6 @@ class IcebergRestConfig:
     s3_version: str = "org.apache.iceberg:iceberg-aws-bundle:1.10.0"
     catalog_alias: str = "iceberg_rest_default"
     catalog_class: str = "org.apache.iceberg.spark.SparkCatalog"
-    catalog_type: str = "rest"
     sql_extensions: str = "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
     catalog_impl: str = "org.apache.iceberg.rest.RESTCatalog"
 

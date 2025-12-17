@@ -35,6 +35,7 @@ import backoff
 from py4j.protocol import Py4JJavaError
 
 from spark_utils.models.delta_lake_config import DeltaLakeConfig
+from spark_utils.models.iceberg_rest_config import IcebergRestConfig
 
 try:
     from kubernetes.client import (
@@ -86,6 +87,7 @@ class SparkSessionProvider:
 
         self._session_init_max_backoff_seconds = session_init_max_backoff_seconds
         self._packages = additional_packages or []
+        self._sql_extensions = []
         logging.getLogger("backoff").addHandler(logging.StreamHandler())
 
         self._spark_session_builder = (
@@ -107,13 +109,34 @@ class SparkSessionProvider:
         """
         return self._spark_session_builder
 
+    def with_iceberg_rest(self, config: IcebergRestConfig) -> Self:
+        """
+        Configure Spark SQL to target Apache Iceberg via REST Catalog.
+        """
+        self._packages += [config.version, config.s3_version]
+        self._sql_extensions += [config.sql_extensions]
+        self._spark_session_builder = (
+            self._spark_session_builder.config("spark.sql.extensions", config.sql_extensions)
+            .config("spark.sql.defaultCatalog", config.catalog_alias)
+            .config(f"spark.sql.catalog.{config.catalog_alias}", config.catalog_class)
+            .config(f"spark.sql.catalog.{config.catalog_alias}.catalog-impl", config.catalog_impl)
+            .config(f"spark.sql.catalog.{config.catalog_alias}.uri", config.catalog_uri)
+            .config(f"spark.sql.catalog.{config.catalog_alias}.credential", config.get_credentials())
+            .config(f"spark.sql.catalog.{config.catalog_alias}.oauth2-server-uri", config.oauth2_uri)
+            .config(f"spark.sql.catalog.{config.catalog_alias}.warehouse", config.warehouse)
+            .config(f"spark.sql.catalog.{config.catalog_alias}.scope", config.scope)
+        )
+
+        return self
+
     def with_delta_lake(self, config: DeltaLakeConfig) -> Self:
         """
         Configure Spark SQL to target Delta Lake.
         """
+        self._sql_extensions += [config.catalog_extension]
         self._spark_session_builder = self._spark_session_builder.config(
-            "spark.sql.extensions", config.catalog_extension
-        ).config("spark.sql.catalog.spark_catalog", config.spark_catalog_class)
+            "spark.sql.catalog.delta_catalog", config.spark_catalog_class
+        )
         self._packages += [config.version]
 
         return self
@@ -272,7 +295,9 @@ class SparkSessionProvider:
             max_time=self._session_init_max_backoff_seconds,
         )
         def _get_session() -> SparkSession:
-            packaged = self._spark_session_builder.config("spark.jars.packages", ",".join(self._packages))
+            packaged = self._spark_session_builder.config("spark.jars.packages", ",".join(self._packages)).config(
+                "spark.sql.extensions", ",".join(self._sql_extensions)
+            )
             if os.environ.get("PYTEST_CURRENT_TEST") or self._run_local:
                 return packaged.master("local[*]").getOrCreate()
 
