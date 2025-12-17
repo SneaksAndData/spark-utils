@@ -14,13 +14,13 @@ def test_get_session():
 
 def test_get_session_with_hive():
     try:
-        provider = SparkSessionProvider(
+        provider = SparkSessionProvider().with_hive_metastore(
             hive_metastore_config=HiveMetastoreConfig(
                 metastore_version="3.1.2", metastore_jars="maven", metastore_uri="thrift://test:9083"
-            ),
+            )
         )
-        spark_session = provider.get_session()
-        spark_session.stop()
+        session = provider.get_session()
+        session.stop()
     except RuntimeError:
         pytest.fail("Failed to create and stop a Spark session with metastore jars from maven")
 

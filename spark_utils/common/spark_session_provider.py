@@ -91,7 +91,7 @@ class SparkSessionProvider:
         logging.getLogger("backoff").addHandler(logging.StreamHandler())
 
         self._spark_session_builder = (
-            SparkSession.builder.config("spark.jars.ivy", os.path.join(tempfile.gettempdir(), ".ivy2"))
+            SparkSession.builder.config("spark.jars.ivy", os.path.join("/tmp", ".ivy2"))
             .config("spark.sql.parquet.datetimeRebaseModeInWrite", "CORRECTED")
             .config("spark.sql.parquet.int96RebaseModeInWrite", "CORRECTED")
         )
@@ -135,7 +135,7 @@ class SparkSessionProvider:
         """
         self._sql_extensions += [config.catalog_extension]
         self._spark_session_builder = self._spark_session_builder.config(
-            "spark.sql.catalog.delta_catalog", config.spark_catalog_class
+            "spark.sql.catalog.spark_catalog", config.spark_catalog_class
         )
         self._packages += [config.version]
 
