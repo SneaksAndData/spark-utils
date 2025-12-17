@@ -13,6 +13,10 @@ jobs:
     if: ${{ github.ref != 'refs/heads/main' }}
 
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Build the Docker Compose stack
         run: docker compose up --quiet-pull -d
 
@@ -38,13 +42,6 @@ jobs:
       options: -u root -w /opt/spark --mount type=tmpfs,destination=/home/spark
 
     steps:
-      - name: Build the Docker Compose stack
-        run: docker compose up --quiet-pull -d
-
-      - name: Get Compose Logs
-        if: always()
-        run: docker compose logs
-
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
