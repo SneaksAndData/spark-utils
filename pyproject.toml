@@ -26,10 +26,15 @@ delta = [
 ]
 
 [tool.poetry.dev-dependencies]
-pytest = "^8.0"
+pytest = "^9"
 pytest-cov = "^7"
 pylint = "^4"
 black = "^24"
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests"
+]
 
 [build-system]
 requires = ["poetry-core>=1.2.0"]
