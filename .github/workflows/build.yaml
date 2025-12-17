@@ -37,7 +37,7 @@ jobs:
         run: |
           set -e
           
-          /github/home/.local/bin/poetry install
+          /github/home/.local/bin/poetry install --all-extras
       - name: Black
         shell: bash
         run: |
