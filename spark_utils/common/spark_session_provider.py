@@ -29,7 +29,7 @@ import logging
 import os
 import tempfile
 import uuid
-from typing import Self
+from typing import Self, final
 
 import backoff
 from py4j.protocol import Py4JJavaError
@@ -60,6 +60,7 @@ from spark_utils.models.k8s_config import SparkKubernetesConfig
 from spark_utils.models.hive_metastore_config import HiveMetastoreConfig
 
 
+@final
 class SparkSessionProvider:
     """
     Provider of a Spark session and related objects
@@ -70,15 +71,12 @@ class SparkSessionProvider:
     def __init__(
         self,
         *,
-        hive_metastore_config: HiveMetastoreConfig | None = None,
         additional_packages: list[str] | None = None,
         additional_configs: dict[str, str] | None = None,
         run_local=False,
         session_init_max_backoff_seconds=180,
     ):
         """
-        :param delta_lake_version: Delta lake package version.
-        :param hive_metastore_config: Optional configuration of a hive metastore that should be connected to this Spark Session.
         :param additional_packages: Additional jars to download. Would not override jars installed or provided from spark-submit.
          This setting only works if a session is started from python and not spark-submit.
         :param additional_configs: Any additional spark configurations.
@@ -95,38 +93,6 @@ class SparkSessionProvider:
             .config("spark.sql.parquet.datetimeRebaseModeInWrite", "CORRECTED")
             .config("spark.sql.parquet.int96RebaseModeInWrite", "CORRECTED")
         )
-
-        if hive_metastore_config:
-            if hive_metastore_config.connection_driver_name:
-                self._spark_session_builder = (
-                    self._spark_session_builder.config(
-                        "spark.hadoop.javax.jdo.option.ConnectionURL", hive_metastore_config.connection_url
-                    )
-                    .config(
-                        "spark.hadoop.javax.jdo.option.ConnectionUserName", hive_metastore_config.connection_username
-                    )
-                    .config(
-                        "spark.hadoop.javax.jdo.option.ConnectionPassword", hive_metastore_config.connection_password
-                    )
-                    .config(
-                        "spark.hadoop.javax.jdo.option.ConnectionDriverName",
-                        hive_metastore_config.connection_driver_name,
-                    )
-                )
-            elif hive_metastore_config.metastore_uri:
-                self._spark_session_builder = self._spark_session_builder.config(
-                    "spark.hadoop.hive.metastore.uris", hive_metastore_config.metastore_uri
-                )
-            else:
-                raise ValueError("Invalid Hive Metastore Configuration provided")
-
-            self._spark_session_builder = (
-                self._spark_session_builder.config(
-                    "spark.sql.hive.metastore.version", hive_metastore_config.metastore_version
-                )
-                .config("spark.sql.hive.metastore.jars", hive_metastore_config.metastore_jars)
-                .config("spark.sql.catalogImplementation", "hive")
-            )
 
         if additional_configs:
             for config_key, config_value in additional_configs.items():
@@ -149,6 +115,41 @@ class SparkSessionProvider:
             "spark.sql.extensions", config.catalog_extension
         ).config("spark.sql.catalog.spark_catalog", config.spark_catalog_class)
         self._packages += [config.version]
+
+        return self
+
+    def with_hive_metastore(self, hive_metastore_config: HiveMetastoreConfig) -> Self:
+        """
+        Configure Hive Metastore catalog backend.
+        """
+        if hive_metastore_config.connection_driver_name:
+            self._spark_session_builder = (
+                self._spark_session_builder.config(
+                    "spark.hadoop.javax.jdo.option.ConnectionURL", hive_metastore_config.connection_url
+                )
+                .config("spark.hadoop.javax.jdo.option.ConnectionUserName", hive_metastore_config.connection_username)
+                .config("spark.hadoop.javax.jdo.option.ConnectionPassword", hive_metastore_config.connection_password)
+                .config(
+                    "spark.hadoop.javax.jdo.option.ConnectionDriverName",
+                    hive_metastore_config.connection_driver_name,
+                )
+            )
+        elif hive_metastore_config.metastore_uri:
+            self._spark_session_builder = self._spark_session_builder.config(
+                "spark.hadoop.hive.metastore.uris", hive_metastore_config.metastore_uri
+            )
+        else:
+            raise ValueError("Invalid Hive Metastore Configuration provided")
+
+        self._spark_session_builder = (
+            self._spark_session_builder.config(
+                "spark.sql.hive.metastore.version", hive_metastore_config.metastore_version
+            )
+            .config("spark.sql.hive.metastore.jars", hive_metastore_config.metastore_jars)
+            .config("spark.sql.catalogImplementation", "hive")
+        )
+
+        return self
 
     def with_astra_bundle(self, db_name: str, bundle_bytes: str) -> Self:
         """
