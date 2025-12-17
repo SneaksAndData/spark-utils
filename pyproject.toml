@@ -15,7 +15,7 @@ cryptography = ">=36"
 delta-spark = "~3.2.1"
 backoff = "~2.2"
 
-kubernetes = { version = "31.0.0", optional = true }
+kubernetes = { version = "^34", optional = true }
 
 [tool.poetry.extras]
 k8s = [
@@ -23,10 +23,10 @@ k8s = [
 ]
 
 [tool.poetry.dev-dependencies]
-pytest = "^7.0"
-pytest-cov = "^3"
-pylint = "^3"
-black = "^23"
+pytest = "^8.0"
+pytest-cov = "^7"
+pylint = "^4"
+black = "^24"
 
 [build-system]
 requires = ["poetry-core>=1.2.0"]

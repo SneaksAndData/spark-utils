@@ -1,6 +1,7 @@
 """
   Wrapper for DeltaLog class.
 """
+
 from pyspark.sql import SparkSession
 from hadoop_fs_wrapper.models.hadoop_fs_path import HadoopFsPath
 

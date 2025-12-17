@@ -29,10 +29,12 @@ import logging
 import os
 import tempfile
 import uuid
-from typing import Optional, List, Dict
+from typing import Self
 
 import backoff
 from py4j.protocol import Py4JJavaError
+
+from spark_utils.models.delta_lake_config import DeltaLakeConfig
 
 try:
     from kubernetes.client import (
@@ -63,16 +65,14 @@ class SparkSessionProvider:
     Provider of a Spark session and related objects
     """
 
-    DELTA_CATALOG_EXTENSION = "io.delta.sql.DeltaSparkSessionExtension"
     TRANSIENT_INIT_ERRORS = ["temporary failure in name resolution"]
 
     def __init__(
         self,
         *,
-        delta_lake_version="2.12:3.2.1",
-        hive_metastore_config: Optional[HiveMetastoreConfig] = None,
-        additional_packages: Optional[List[str]] = None,
-        additional_configs: Optional[Dict[str, str]] = None,
+        hive_metastore_config: HiveMetastoreConfig | None = None,
+        additional_packages: list[str] | None = None,
+        additional_configs: dict[str, str] | None = None,
         run_local=False,
         session_init_max_backoff_seconds=180,
     ):
@@ -87,17 +87,11 @@ class SparkSessionProvider:
         """
 
         self._session_init_max_backoff_seconds = session_init_max_backoff_seconds
+        self._packages = additional_packages or []
         logging.getLogger("backoff").addHandler(logging.StreamHandler())
 
-        packages = [f"io.delta:delta-spark_{delta_lake_version}"]
-        if additional_packages:
-            packages.extend(additional_packages)
-
         self._spark_session_builder = (
-            SparkSession.builder.config("spark.jars.packages", ",".join(packages))
-            .config("spark.sql.extensions", SparkSessionProvider.DELTA_CATALOG_EXTENSION)
-            .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
-            .config("spark.jars.ivy", os.path.join(tempfile.gettempdir(), ".ivy2"))
+            SparkSession.builder.config("spark.jars.ivy", os.path.join(tempfile.gettempdir(), ".ivy2"))
             .config("spark.sql.parquet.datetimeRebaseModeInWrite", "CORRECTED")
             .config("spark.sql.parquet.int96RebaseModeInWrite", "CORRECTED")
         )
@@ -147,7 +141,16 @@ class SparkSessionProvider:
         """
         return self._spark_session_builder
 
-    def with_astra_bundle(self, db_name: str, bundle_bytes: str) -> "SparkSessionProvider":
+    def with_delta_lake(self, config: DeltaLakeConfig) -> Self:
+        """
+        Configure Spark SQL to target Delta Lake.
+        """
+        self._spark_session_builder = self._spark_session_builder.config(
+            "spark.sql.extensions", config.catalog_extension
+        ).config("spark.sql.catalog.spark_catalog", config.spark_catalog_class)
+        self._packages += [config.version]
+
+    def with_astra_bundle(self, db_name: str, bundle_bytes: str) -> Self:
         """
          Mounts Astra DB bundle into a Spark Session.
 
@@ -167,9 +170,7 @@ class SparkSessionProvider:
 
         return self
 
-    def configure_for_k8s(
-        self, master_url: str, spark_config: SparkKubernetesConfig, master_port: int = 443
-    ) -> "SparkSessionProvider":
+    def configure_for_k8s(self, master_url: str, spark_config: SparkKubernetesConfig, master_port: int = 443) -> Self:
         """
         Configures spark session for using Kubernetes as a resource manager.
 
@@ -208,26 +209,32 @@ class SparkSessionProvider:
                 security_context=V1PodSecurityContext(
                     run_as_user=spark_config.spark_uid, run_as_group=spark_config.spark_gid
                 ),
-                affinity=V1NodeAffinity(
-                    required_during_scheduling_ignored_during_execution=V1NodeSelector(
-                        node_selector_terms=[
-                            V1NodeSelectorTerm(
-                                match_expressions=[
-                                    V1NodeSelectorRequirement(key=affinity_key, values=[affinity_value], operator="In")
-                                    for affinity_key, affinity_value in spark_config.executor_node_affinity.items()
-                                ]
-                            )
-                        ]
+                affinity=(
+                    V1NodeAffinity(
+                        required_during_scheduling_ignored_during_execution=V1NodeSelector(
+                            node_selector_terms=[
+                                V1NodeSelectorTerm(
+                                    match_expressions=[
+                                        V1NodeSelectorRequirement(
+                                            key=affinity_key, values=[affinity_value], operator="In"
+                                        )
+                                        for affinity_key, affinity_value in spark_config.executor_node_affinity.items()
+                                    ]
+                                )
+                            ]
+                        )
                     )
-                )
-                if spark_config.executor_node_affinity
-                else None,
-                tolerations=[
-                    V1Toleration(effect="NoSchedule", key=affinity_key, operator="Equal", value=affinity_value)
-                    for affinity_key, affinity_value in spark_config.executor_node_affinity.items()
-                ]
-                if spark_config.executor_node_affinity
-                else None,
+                    if spark_config.executor_node_affinity
+                    else None
+                ),
+                tolerations=(
+                    [
+                        V1Toleration(effect="NoSchedule", key=affinity_key, operator="Equal", value=affinity_value)
+                        for affinity_key, affinity_value in spark_config.executor_node_affinity.items()
+                    ]
+                    if spark_config.executor_node_affinity
+                    else None
+                ),
             ),
         )
 
@@ -243,7 +250,7 @@ class SparkSessionProvider:
 
         return self
 
-    def get_session(self):
+    def get_session(self) -> SparkSession:
         """
           Launch a configured Spark Session.
 
@@ -263,10 +270,11 @@ class SparkSessionProvider:
             giveup=is_fatal_py4j_error,
             max_time=self._session_init_max_backoff_seconds,
         )
-        def _get_session():
+        def _get_session() -> SparkSession:
+            packaged = self._spark_session_builder.config("spark.jars.packages", ",".join(self._packages))
             if os.environ.get("PYTEST_CURRENT_TEST") or self._run_local:
-                return self._spark_session_builder.master("local[*]").getOrCreate()
+                return packaged.master("local[*]").getOrCreate()
 
-            return self._spark_session_builder.getOrCreate()
+            return packaged.getOrCreate()
 
         return _get_session()
