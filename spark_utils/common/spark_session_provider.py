@@ -34,8 +34,13 @@ from typing import Self, final
 import backoff
 from py4j.protocol import Py4JJavaError
 
+import pyspark
+from pyspark.sql import SparkSession
+
 from spark_utils.models.delta_lake_config import DeltaLakeConfig
 from spark_utils.models.iceberg_rest_config import IcebergRestConfig
+from spark_utils.models.k8s_config import SparkKubernetesConfig
+from spark_utils.models.hive_metastore_config import HiveMetastoreConfig
 
 try:
     from kubernetes.client import (
@@ -54,11 +59,6 @@ try:
     )
 except ModuleNotFoundError:
     pass
-import pyspark
-from pyspark.sql import SparkSession
-
-from spark_utils.models.k8s_config import SparkKubernetesConfig
-from spark_utils.models.hive_metastore_config import HiveMetastoreConfig
 
 
 @final

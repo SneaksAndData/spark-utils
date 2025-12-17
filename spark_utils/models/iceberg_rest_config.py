@@ -31,11 +31,11 @@ class IcebergRestConfig:
     """
 
     catalog_uri: str
-    oauth2_uri: str
     warehouse: str
-    scope: str
-    client_id: str
-    client_secret: str
+    oauth2_uri: str | None = None
+    scope: str | None = None
+    client_id: str | None = None
+    client_secret: str | None = None
 
     version: str = "org.apache.iceberg:iceberg-spark-runtime-3.5_2.13:1.10.0"
     s3_version: str = "org.apache.iceberg:iceberg-aws-bundle:1.10.0"
@@ -44,8 +44,21 @@ class IcebergRestConfig:
     sql_extensions: str = "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
     catalog_impl: str = "org.apache.iceberg.rest.RESTCatalog"
 
-    def get_credentials(self) -> str:
+    def get_credentials(self) -> str | None:
         """
         Generate Iceberg REST credential
         """
+        if self.client_id is None or self.client_secret is None:
+            return None
         return f"{self.client_id}:{self.client_secret}"
+
+    def has_auth(self) -> bool:
+        """
+        Check if all OAuth properties have been set
+        """
+        return (
+            self.oauth2_uri is not None
+            and self.client_id is not None
+            and self.client_secret is not None
+            and self.scope is not None
+        )
