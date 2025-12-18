@@ -28,26 +28,28 @@ jobs:
         if: always()
         run: docker compose logs
 
-      - name: Install Poetry
-        run: |
-          set -e
-          
-          curl -sSL https://install.python-poetry.org | python3 -
-      - name: Install Dependencies
-        run: |
-          set -e
-          
-          /github/home/.local/bin/poetry install --all-extras
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.x' # Version range or exact version of a Python version to use, using SemVer's version range syntax
+          architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
+
+      - name: Install Poetry and dependencies
+        uses: SneaksAndData/github-actions/install_poetry@v0.1.11
+        with:
+          install_extras: all
+
       - name: Black
         shell: bash
         run: |
           set -e
-          /github/home/.local/bin/poetry run black . --check --diff
+          
+          poetry run black . --check --diff
       - name: Lint
         run: |
           set -e
 
-          find ./spark_utils -type f -name "*.py" | xargs /github/home/.local/bin/poetry run pylint
+          find ./spark_utils -type f -name "*.py" | xargs poetry run pylint
+
       - name: Unit test
         shell: bash
         env:
@@ -55,7 +57,7 @@ jobs:
         run: |
           set -euxo pipefail
 
-          /github/home/.local/bin/poetry run pytest --cov-config=.coveragerc --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=term-missing:skip-covered | tee pytest-coverage.txt
+          poetry run pytest --cov-config=.coveragerc --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=term-missing:skip-covered | tee pytest-coverage.txt
       - name: Publish Code Coverage
         uses: MishaKav/pytest-coverage-comment@main
         with:
