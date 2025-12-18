@@ -7,13 +7,17 @@ on:
     branches: [ main ]
 
 jobs:
-  setup_test:
-    name: Setup integration for Iceberg
+  validate_code:
+    name: Validate code in spark container
     runs-on: ubuntu-latest
     if: ${{ github.ref != 'refs/heads/main' }}
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -23,28 +27,6 @@ jobs:
       - name: Get Compose Logs
         if: always()
         run: docker compose logs
-
-  validate_code:
-    name: Validate code in spark container
-    runs-on: ubuntu-latest
-    needs: setup_test
-    if: ${{ github.ref != 'refs/heads/main' }}
-    permissions:
-      contents: read
-      packages: read
-      pull-requests: write
-
-    container:
-      image: ghcr.io/sneaksanddata/spark:v5.0.4
-      credentials:
-        username: USERNAME
-        password: ${{ secrets.GHCR_TOKEN }}
-      options: -u root -w /opt/spark --mount type=tmpfs,destination=/home/spark
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Install Poetry
         run: |
