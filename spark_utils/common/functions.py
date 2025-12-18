@@ -76,7 +76,7 @@ def read_from_socket(
     :return: Spark dataframe
     """
     read_options = read_options or {}
-    if socket.data_format.startswith("hive"):
+    if socket.data_format.startswith("hive") or socket.data_format.startswith("iceberg"):
         return spark_session.table(socket.data_path)
 
     return spark_session.read.options(**read_options).format(socket.data_format).load(socket.data_path)
@@ -102,6 +102,11 @@ def write_to_socket(
     partition_by = partition_by or []
     if partition_count:
         data = data.repartition(partition_count, *partition_by)
+
+    # ignore all external write options as Iceberg writer will take care of those
+    if socket.data_format.startswith("iceberg"):
+        data.writeTo(socket.data_path).createOrReplace()
+        return
 
     writer = data.write.mode("overwrite").options(**write_options)
 
