@@ -1,6 +1,7 @@
 """
  Spark on Kubernetes configuration flags.
 """
+
 import socket
 
 from dataclasses import dataclass

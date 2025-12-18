@@ -20,32 +20,45 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""
- Input mapping class for all python jobs
-"""
 
 from dataclasses import dataclass
 
 
 @dataclass
-class JobSocket:
+class IcebergRestConfig:
     """
-    Input/Output data map
-
-    Attributes:
-        alias: mapping key to be used by a consumer
-        data_path: fully qualified path to actual data, i.e. abfss://..., s3://... etc.
-        data_format: data format, i.e. csv, json, delta etc.
+    Iceberg configs for Spark session
     """
 
-    alias: str
-    data_path: str
-    data_format: str
+    catalog_uri: str
+    catalog_alias: str
+    warehouse: str
+    oauth2_uri: str | None = None
+    scope: str | None = None
+    client_id: str | None = None
+    client_secret: str | None = None
 
-    def serialize(self, separator: str = "|") -> str:
-        """Serializes job socket to the format used by SparkJobArgs when reading from command line.
+    version: str = "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.10.0"
+    s3_version: str = "org.apache.iceberg:iceberg-aws-bundle:1.10.0"
+    catalog_class: str = "org.apache.iceberg.spark.SparkCatalog"
+    sql_extensions: str = "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
+    catalog_impl: str = "org.apache.iceberg.rest.RESTCatalog"
 
-        Attributes:
-            separator: Separator to use for serialization
+    def get_credentials(self) -> str | None:
         """
-        return separator.join([self.alias, self.data_path, self.data_format])
+        Generate Iceberg REST credential
+        """
+        if self.client_id is None or self.client_secret is None:
+            return None
+        return f"{self.client_id}:{self.client_secret}"
+
+    def has_auth(self) -> bool:
+        """
+        Check if all OAuth properties have been set
+        """
+        return (
+            self.oauth2_uri is not None
+            and self.client_id is not None
+            and self.client_secret is not None
+            and self.scope is not None
+        )

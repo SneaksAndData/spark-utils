@@ -16,44 +16,48 @@ jobs:
       packages: read
       pull-requests: write
 
-    container:
-      image: ghcr.io/sneaksanddata/spark:v5.0.3
-      credentials:
-        username: USERNAME
-        password: ${{ secrets.GHCR_TOKEN }}
-      options: -u root -w /opt/spark --mount type=tmpfs,destination=/home/spark
-
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Install Poetry
-        run: |
-          set -e
-          
-          curl -sSL https://install.python-poetry.org | python3 -
-      - name: Install Dependencies
-        run: |
-          set -e
-          
-          /github/home/.local/bin/poetry install
+      - name: Build the Docker Compose stack
+        run: docker compose up --quiet-pull -d
+
+      - name: Get Compose Logs
+        if: always()
+        run: docker compose logs
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.x' # Version range or exact version of a Python version to use, using SemVer's version range syntax
+          architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
+
+      - name: Install Poetry and dependencies
+        uses: SneaksAndData/github-actions/install_poetry@v0.1.11
+        with:
+          install_extras: all
+
       - name: Black
         shell: bash
         run: |
           set -e
-          /github/home/.local/bin/poetry run black . --check --diff
+          
+          poetry run black . --check --diff
       - name: Lint
         run: |
           set -e
 
-          find ./spark_utils -type f -name "*.py" | xargs /github/home/.local/bin/poetry run pylint
+          find ./spark_utils -type f -name "*.py" | xargs poetry run pylint
+
       - name: Unit test
         shell: bash
+        env:
+          PYSPARK_SUBMIT_ARGS: "--packages org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.10.0,org.apache.iceberg:iceberg-aws-bundle:1.10.0,io.delta:delta-spark_2.12:3.2.1 pyspark-shell"
         run: |
           set -euxo pipefail
 
-          /github/home/.local/bin/poetry run pytest ./test --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=term-missing:skip-covered | tee pytest-coverage.txt
+          poetry run pytest --cov-config=.coveragerc --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=term-missing:skip-covered | tee pytest-coverage.txt
       - name: Publish Code Coverage
         uses: MishaKav/pytest-coverage-comment@main
         with:
