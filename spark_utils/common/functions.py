@@ -88,6 +88,7 @@ def write_to_socket(
     partition_by: Optional[List[str]] = None,
     partition_count: Optional[int] = None,
     write_options: Optional[Dict[str, str]] = None,
+    mode: str = "overwrite",
 ) -> None:
     """Writes data to socket
 
@@ -95,7 +96,8 @@ def write_to_socket(
     :param socket: Socket to write to
     :param partition_by: List of column names to partition by
     :param partition_count: Number of partitions to split result into.
-    :param write_options: Write options passed to spark (e.g. Parquet options
+    :param write_options: Write options passed to spark (e.g. Parquet options)
+    :param mode: Write mode
     found here: https://spark.apache.org/docs/latest/sql-data-sources-parquet.html#data-source-option)
     """
     write_options = write_options or {}
@@ -105,10 +107,13 @@ def write_to_socket(
 
     # ignore all external write options as Iceberg writer will take care of those
     if socket.data_format.startswith("iceberg"):
-        data.writeTo(socket.data_path).createOrReplace()
+        if mode == "overwrite":
+            data.writeTo(socket.data_path).createOrReplace()
+        if mode == "append":
+            data.writeTo(socket.data_path).append()
         return
 
-    writer = data.write.mode("overwrite").options(**write_options)
+    writer = data.write.mode(mode).options(**write_options)
 
     if partition_by:
         writer = writer.partitionBy(*partition_by)
