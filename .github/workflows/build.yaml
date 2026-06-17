@@ -55,7 +55,7 @@ jobs:
         env:
           PYSPARK_SUBMIT_ARGS: "--packages org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.10.0,org.apache.iceberg:iceberg-aws-bundle:1.10.0,io.delta:delta-spark_2.12:3.2.1 pyspark-shell"
         run: |
-          set -euxo pipefail
+          set -euo pipefail
 
           poetry run pytest --cov-config=.coveragerc --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=term-missing:skip-covered | tee pytest-coverage.txt
       - name: Publish Code Coverage
