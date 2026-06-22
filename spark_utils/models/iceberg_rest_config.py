@@ -37,6 +37,8 @@ class IcebergRestConfig:
     scope: str | None = None
     client_id: str | None = None
     client_secret: str | None = None
+    # rely on client-credentials fallback by default
+    token_exchange_enabled: bool = False
 
     version: str = "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.10.0"
     s3_version: str = "org.apache.iceberg:iceberg-aws-bundle:1.10.0"
