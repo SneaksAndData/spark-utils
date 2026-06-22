@@ -131,8 +131,11 @@ class SparkSessionProvider:
                 )
                 .config(f"spark.sql.catalog.{config.catalog_alias}.oauth2-server-uri", config.oauth2_uri)
                 .config(f"spark.sql.catalog.{config.catalog_alias}.scope", config.scope)
+                .config(
+                    f"spark.sql.catalog.{config.catalog_alias}.token-exchange-enabled",
+                    str(config.token_exchange_enabled).lower(),
+                )
             )
-
         return self
 
     def with_delta_lake(self, config: DeltaLakeConfig) -> Self:
